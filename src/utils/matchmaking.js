@@ -205,7 +205,8 @@ export function importFromSheet(rawText, tournoi) {
       nom,
       j1,
       j2: (cols[2] || '').trim(),
-      empl: (cols[3] || '').trim(),
+      j3: (cols[3] || '').trim(),
+      empl: (cols[4] || '').trim(),
       v: 0, d: 0, pts: 0, ptsCont: 0,
       matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
     });
