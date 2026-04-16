@@ -210,7 +210,7 @@ export default function Equipes() {
   const [pendingRegs, setPendingRegs] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
-  const [apiStatus, setApiStatus] = useState('unknown'); // 'ok' | 'error' | 'unknown'
+  const [apiStatus, setApiStatus] = useState('unknown'); // 'ok' | 'error:<msg>' | 'unknown'
   const lastTsRef = useRef(0);
 
   const qrUrl = tournoi ? `${window.location.origin}/?register=${tournoi.id}` : '';
@@ -228,10 +228,15 @@ export default function Equipes() {
         scoreCible: tournoi.scoreCible,
       }),
     })
-      .then((r) => {
-        setApiStatus(r.ok ? 'ok' : 'error');
+      .then(async (r) => {
+        if (r.ok) {
+          setApiStatus('ok');
+        } else {
+          const data = await r.json().catch(() => ({}));
+          setApiStatus('error:' + (data.error || `HTTP ${r.status}`));
+        }
       })
-      .catch(() => setApiStatus('error'));
+      .catch((e) => setApiStatus('error:' + e.message));
   }, [tournoi?.id, tournoi?.started]);
 
   // Poll for new registrations from participants' phones
@@ -355,7 +360,7 @@ export default function Equipes() {
         </div>
 
         {/* API connection status */}
-        {apiStatus === 'error' && (
+        {apiStatus.startsWith('error') && (
           <div className="card border-2 border-amber-300 bg-amber-50">
             <div className="flex items-start gap-3">
               <span className="text-2xl">⚠️</span>
@@ -364,6 +369,11 @@ export default function Equipes() {
                 <p className="text-amber-700 text-sm mt-1">
                   L'API serveur ne répond pas. Les participants ne pourront pas s'inscrire via le QR code sur Vercel.
                 </p>
+                {apiStatus.length > 6 && (
+                  <p className="text-amber-800 text-xs mt-2 font-mono bg-amber-100 rounded-lg px-2 py-1">
+                    Erreur : {apiStatus.replace('error:', '')}
+                  </p>
+                )}
                 <p className="text-amber-600 text-xs mt-2 font-mono">
                   → Vérifiez que REDIS_URL est bien configuré dans Vercel → Settings → Environment Variables (avec une valeur non vide).
                 </p>
