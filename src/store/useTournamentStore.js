@@ -120,6 +120,7 @@ export const useTournamentStore = create((set, get) => ({
       nom,
       j1: equipeData.j1 || '',
       j2: equipeData.j2 || '',
+      j3: equipeData.j3 || '',
       empl: equipeData.empl || '',
       v: 0, d: 0, pts: 0, ptsCont: 0,
       matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,

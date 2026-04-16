@@ -3,154 +3,147 @@ import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTournamentStore } from '../store/useTournamentStore';
 import { importFromSheet } from '../utils/matchmaking';
 
-// ── Kiosk mode ────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function playerFields(joueursParEq) {
+  return Array.from({ length: joueursParEq }, (_, i) => i + 1);
+}
+
+// ── Kiosk / Projection screen ─────────────────────────────────────────────────
 
 function KioskMode({ tournoi, onClose }) {
   const { addEquipe } = useTournamentStore();
-  const [form, setForm] = useState({ nom: '', j1: '', j2: '', empl: '' });
+  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '', empl: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const nomRef = useRef();
 
-  useEffect(() => {
-    nomRef.current?.focus();
-  }, []);
+  useEffect(() => { nomRef.current?.focus(); }, []);
 
+  const nb = tournoi.joueursParEq || 2;
   const setField = (f, v) => setForm((s) => ({ ...s, [f]: v }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    if (!form.nom.trim()) { setError('Le nom de l\'équipe est obligatoire'); return; }
+    if (!form.nom.trim()) { setError("Le nom de l'équipe est obligatoire"); return; }
     if (!form.j1.trim()) { setError('Le joueur 1 est obligatoire'); return; }
+    if (nb >= 2 && !form.j2.trim()) { setError('Le joueur 2 est obligatoire'); return; }
+    if (nb >= 3 && !form.j3.trim()) { setError('Le joueur 3 est obligatoire'); return; }
 
     const result = addEquipe(tournoi.id, form);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
+    if (result.error) { setError(result.error); return; }
     setSuccess(`✅ Équipe "${form.nom}" inscrite !`);
-    setForm({ nom: '', j1: '', j2: '', empl: '' });
-    setTimeout(() => {
-      setSuccess('');
-      nomRef.current?.focus();
-    }, 3000);
+    setForm({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+    setTimeout(() => { setSuccess(''); nomRef.current?.focus(); }, 3000);
   };
 
-  const equipesList = tournoi.equipes;
+  const qrUrl = `${window.location.origin}/?register=${tournoi.id}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-600 flex flex-col overflow-auto">
-      <div className="flex items-center justify-between px-6 py-4 bg-navy-800">
-        <h1 className="text-white text-2xl font-bold">🎯 Inscription — {tournoi.nom}</h1>
+    <div className="fixed inset-0 z-50 bg-gradient-to-br from-navy-800 to-blue-900 flex flex-col overflow-auto">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-4 bg-black/30 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">🎯</span>
+          <div>
+            <h1 className="text-white text-xl font-black">{tournoi.nom}</h1>
+            <p className="text-blue-300 text-xs">Borne d'inscription</p>
+          </div>
+        </div>
         <button
-          className="text-white bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+          className="text-white bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-white/30"
           onClick={onClose}
         >
           ✕ Fermer la borne
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-5xl mx-auto w-full">
-        {/* Form */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-6xl mx-auto w-full">
+        {/* QR Code side */}
+        <div className="lg:w-72 flex flex-col gap-4">
+          <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 text-center border border-white/20">
+            <p className="text-white font-bold mb-4 text-lg">📱 Inscription sur votre téléphone</p>
+            <div className="bg-white rounded-2xl p-4 inline-block shadow-xl">
+              <QRCode value={qrUrl} size={180} level="M" />
+            </div>
+            <p className="text-blue-200 text-xs mt-3">Scannez avec votre appareil photo</p>
+            <p className="text-white/40 text-xs mt-1 break-all">{qrUrl}</p>
+          </div>
+
+          {/* Teams list */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 border border-white/20 flex-1">
+            <h3 className="text-white font-bold mb-3">
+              Inscrits ({tournoi.equipes.length}/{tournoi.eqMax})
+            </h3>
+            <div className="overflow-y-auto max-h-64 flex flex-col gap-2">
+              {tournoi.equipes.length === 0 && (
+                <p className="text-white/40 text-sm italic">Aucune équipe pour l'instant</p>
+              )}
+              {tournoi.equipes.map((eq, i) => (
+                <div key={eq.id} className="bg-white/20 rounded-xl px-3 py-2">
+                  <span className="text-white font-bold text-sm">{i + 1}. {eq.nom}</span>
+                  <div className="text-white/60 text-xs">{eq.j1}{eq.j2 ? ` & ${eq.j2}` : ''}{eq.j3 ? ` & ${eq.j3}` : ''}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Registration form */}
         <div className="flex-1">
-          <div className="bg-white rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-navy-600 mb-6">Inscrire une équipe</h2>
+          <div className="bg-white rounded-3xl p-6 shadow-2xl">
+            <h2 className="text-2xl font-black text-navy-600 mb-6">Inscrire mon équipe ici</h2>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-base">
-                {error}
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-2xl mb-4 font-medium">
+                ⚠️ {error}
               </div>
             )}
             {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-base font-semibold">
+              <div className="bg-green-50 border-2 border-green-300 text-green-700 px-4 py-4 rounded-2xl mb-4 font-bold text-lg text-center">
                 {success}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-base font-semibold text-gray-700 mb-2">
-                  Nom de l'équipe *
-                </label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">🏅 Nom de l'équipe *</label>
                 <input
                   ref={nomRef}
-                  className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-navy-600"
-                  placeholder="Ex: Les Cigales"
+                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-lg font-medium focus:outline-none focus:border-navy-600 transition-colors"
+                  placeholder="Ex : Les Cigales"
                   value={form.nom}
                   onChange={(e) => setField('nom', e.target.value)}
                 />
               </div>
-              <div>
-                <label className="block text-base font-semibold text-gray-700 mb-2">
-                  Joueur 1 *
-                </label>
-                <input
-                  className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-navy-600"
-                  placeholder="Prénom Nom"
-                  value={form.j1}
-                  onChange={(e) => setField('j1', e.target.value)}
-                />
-              </div>
-              {tournoi.joueursParEq >= 2 && (
-                <div>
-                  <label className="block text-base font-semibold text-gray-700 mb-2">
-                    Joueur 2
-                  </label>
+              {playerFields(nb).map((n) => (
+                <div key={n}>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">👤 Joueur {n} *</label>
                   <input
-                    className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-navy-600"
-                    placeholder="Prénom Nom (optionnel)"
-                    value={form.j2}
-                    onChange={(e) => setField('j2', e.target.value)}
+                    className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-lg font-medium focus:outline-none focus:border-navy-600 transition-colors"
+                    placeholder="Prénom Nom"
+                    value={form[`j${n}`]}
+                    onChange={(e) => setField(`j${n}`, e.target.value)}
                   />
                 </div>
-              )}
+              ))}
               <div>
-                <label className="block text-base font-semibold text-gray-700 mb-2">
-                  Emplacement camping
-                </label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">🏕️ Emplacement camping</label>
                 <input
-                  className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-navy-600"
-                  placeholder="Ex: n°42 (optionnel)"
+                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-lg font-medium focus:outline-none focus:border-navy-600 transition-colors"
+                  placeholder="n°42 (optionnel)"
                   value={form.empl}
                   onChange={(e) => setField('empl', e.target.value)}
                 />
               </div>
               <button
                 type="submit"
-                className="bg-navy-600 text-white py-4 rounded-xl text-xl font-bold hover:bg-navy-700 transition-colors mt-2"
+                className="bg-gradient-to-r from-navy-600 to-blue-700 text-white py-4 rounded-2xl text-xl font-black hover:from-navy-700 hover:to-blue-800 transition-all shadow-lg mt-2"
               >
                 S'inscrire →
               </button>
             </form>
-
-            <div className="mt-4 text-center text-sm text-gray-500">
-              {equipesList.length}/{tournoi.eqMax} équipes inscrites
-            </div>
-          </div>
-        </div>
-
-        {/* Teams list */}
-        <div className="lg:w-72">
-          <div className="bg-white/10 rounded-2xl p-4">
-            <h3 className="text-white font-bold mb-3 text-lg">
-              Équipes inscrites ({equipesList.length})
-            </h3>
-            <div className="overflow-y-auto max-h-96 flex flex-col gap-2">
-              {equipesList.length === 0 && (
-                <p className="text-white/60 text-sm italic">Aucune équipe pour l'instant</p>
-              )}
-              {equipesList.map((eq, i) => (
-                <div key={eq.id} className="bg-white/20 rounded-xl px-3 py-2">
-                  <div className="text-white font-semibold text-sm">
-                    {i + 1}. {eq.nom}
-                  </div>
-                  <div className="text-white/70 text-xs">
-                    {eq.j1}{eq.j2 ? ` & ${eq.j2}` : ''}{eq.empl ? ` — ${eq.empl}` : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -160,50 +153,49 @@ function KioskMode({ tournoi, onClose }) {
 
 // ── Manual add form ───────────────────────────────────────────────────────────
 
-function ManualAddForm({ tournoi, onAdded }) {
+function ManualAddForm({ tournoi }) {
   const { addEquipe } = useTournamentStore();
-  const [form, setForm] = useState({ nom: '', j1: '', j2: '', empl: '' });
+  const nb = tournoi.joueursParEq || 2;
+  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '', empl: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   const setField = (f, v) => setForm((s) => ({ ...s, [f]: v }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    if (!form.nom.trim()) { setError("Nom obligatoire"); return; }
+    if (!form.j1.trim()) { setError("Joueur 1 obligatoire"); return; }
+    if (nb >= 2 && !form.j2.trim()) { setError("Joueur 2 obligatoire"); return; }
+    if (nb >= 3 && !form.j3.trim()) { setError("Joueur 3 obligatoire"); return; }
     const result = addEquipe(tournoi.id, form);
     if (result.error) { setError(result.error); return; }
     setSuccess(`Équipe "${form.nom}" ajoutée`);
-    setForm({ nom: '', j1: '', j2: '', empl: '' });
+    setForm({ nom: '', j1: '', j2: '', j3: '', empl: '' });
     setTimeout(() => setSuccess(''), 2000);
-    onAdded?.();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      {error && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded">{error}</div>}
-      {success && <div className="text-green-600 text-sm bg-green-50 px-3 py-2 rounded">{success}</div>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3 mt-4">
+      {error && <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-xl border border-red-200">{error}</div>}
+      {success && <div className="text-green-600 text-sm bg-green-50 px-3 py-2 rounded-xl border border-green-200">{success}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Nom équipe *</label>
           <input className="input-field" placeholder="Les Cigales" value={form.nom} onChange={(e) => setField('nom', e.target.value)} />
         </div>
-        <div>
-          <label className="label">Joueur 1 *</label>
-          <input className="input-field" placeholder="Prénom Nom" value={form.j1} onChange={(e) => setField('j1', e.target.value)} />
-        </div>
-        {tournoi.joueursParEq >= 2 && (
-          <div>
-            <label className="label">Joueur 2</label>
-            <input className="input-field" placeholder="Prénom Nom (optionnel)" value={form.j2} onChange={(e) => setField('j2', e.target.value)} />
+        {playerFields(nb).map((n) => (
+          <div key={n}>
+            <label className="label">Joueur {n} *</label>
+            <input className="input-field" placeholder="Prénom Nom" value={form[`j${n}`]} onChange={(e) => setField(`j${n}`, e.target.value)} />
           </div>
-        )}
+        ))}
         <div>
           <label className="label">Emplacement</label>
-          <input className="input-field" placeholder="n°42 (optionnel)" value={form.empl} onChange={(e) => setField('empl', e.target.value)} />
+          <input className="input-field" placeholder="n°42" value={form.empl} onChange={(e) => setField('empl', e.target.value)} />
         </div>
       </div>
-      <button type="submit" className="btn-primary self-start">+ Ajouter</button>
+      <button type="submit" className="btn-primary self-start">+ Ajouter l'équipe</button>
     </form>
   );
 }
@@ -211,46 +203,93 @@ function ManualAddForm({ tournoi, onAdded }) {
 // ── Main Equipes screen ───────────────────────────────────────────────────────
 
 export default function Equipes() {
-  const { getActiveTournoi, updateTournoiParams, importEquipes, removeEquipe, startTournoi, openKiosk, setScreen, kioskOpen, closeKiosk } = useTournamentStore();
+  const { getActiveTournoi, importEquipes, removeEquipe, startTournoi, openKiosk, setScreen, kioskOpen, closeKiosk } = useTournamentStore();
   const tournoi = getActiveTournoi();
 
-  const [sheetText, setSheetText] = useState('');
-  const [importResult, setImportResult] = useState(null);
   const [startError, setStartError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [pendingRegs, setPendingRegs] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState('');
+  const lastTsRef = useRef(0);
+
+  const qrUrl = tournoi ? `${window.location.origin}/?register=${tournoi.id}` : '';
+
+  // Push tournoi info to server so InscriptionPage can fetch it
+  useEffect(() => {
+    if (!tournoi || tournoi.started) return;
+    fetch(`/api/tournoi/${tournoi.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nom: tournoi.nom,
+        joueursParEq: tournoi.joueursParEq,
+        eqMax: tournoi.eqMax,
+        scoreCible: tournoi.scoreCible,
+      }),
+    }).catch(() => {});
+  }, [tournoi?.id, tournoi?.started]);
+
+  // Poll for new registrations from participants' phones
+  useEffect(() => {
+    if (!tournoi || tournoi.started) return;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/registrations/${tournoi.id}?since=${lastTsRef.current}`);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setPendingRegs((prev) => {
+            const existingIds = new Set(prev.map((r) => r._id));
+            const newOnes = data.filter((r) => !existingIds.has(r._id));
+            return [...prev, ...newOnes];
+          });
+          lastTsRef.current = Math.max(...data.map((r) => r._ts));
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 4000);
+    return () => clearInterval(interval);
+  }, [tournoi?.id, tournoi?.started]);
 
   if (!tournoi) return null;
 
-  const handleImport = () => {
-    if (!sheetText.trim()) return;
-    const { equipes, added, skipped } = importFromSheet(sheetText, tournoi);
-    importEquipes(tournoi.id, equipes);
-    setImportResult({ added, skipped });
-    setSheetText('');
-  };
+  const handleImportPending = async () => {
+    if (pendingRegs.length === 0) return;
+    setImporting(true);
+    let added = 0, skipped = 0;
+    const newEquipes = [...tournoi.equipes];
+    const ids = [];
 
-  const handleUrlChange = (url) => {
-    updateTournoiParams(tournoi.id, { googleFormUrl: url });
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard?.writeText(tournoi.googleFormUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    for (const reg of pendingRegs) {
+      ids.push(reg._id);
+      if (newEquipes.length >= tournoi.eqMax) { skipped++; continue; }
+      if (newEquipes.find((e) => e.nom.toLowerCase() === reg.nom.toLowerCase())) { skipped++; continue; }
+      newEquipes.push({
+        id: Date.now() + Math.random(),
+        nom: reg.nom, j1: reg.j1, j2: reg.j2 || '', j3: reg.j3 || '', empl: reg.empl || '',
+        v: 0, d: 0, pts: 0, ptsCont: 0, matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
+      });
+      added++;
+    }
+    importEquipes(tournoi.id, newEquipes);
+    await fetch(`/api/registrations/${tournoi.id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    }).catch(() => {});
+    setPendingRegs([]);
+    setImportMsg(`✓ ${added} équipe${added !== 1 ? 's' : ''} importée${added !== 1 ? 's' : ''}${skipped > 0 ? `, ${skipped} ignorée${skipped !== 1 ? 's' : ''}` : ''}`);
+    setTimeout(() => setImportMsg(''), 4000);
+    setImporting(false);
   };
 
   const handleStart = () => {
     setStartError('');
     const result = startTournoi(tournoi.id);
-    if (result.error) {
-      setStartError(result.error);
-      return;
-    }
+    if (result.error) { setStartError(result.error); return; }
     setScreen('tour');
   };
 
-  const qrValue = tournoi.googleFormUrl || 'https://forms.google.com';
   const canStart = tournoi.equipes.length >= 2 && !tournoi.started;
 
   return (
@@ -258,112 +297,123 @@ export default function Equipes() {
       {kioskOpen && <KioskMode tournoi={tournoi} onClose={closeKiosk} />}
 
       <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-navy-600">
-            Inscription — {tournoi.nom}
-          </h2>
-          <span className="text-sm text-gray-500">
-            {tournoi.equipes.length}/{tournoi.eqMax} équipes
-          </span>
+          <div>
+            <h2 className="text-xl font-black text-navy-600">Inscription des équipes</h2>
+            <p className="text-gray-500 text-sm">{tournoi.nom}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-bold px-3 py-1 rounded-full ${tournoi.equipes.length >= tournoi.eqMin ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+              {tournoi.equipes.length}/{tournoi.eqMax} équipes
+            </span>
+          </div>
         </div>
 
-        {/* QR Code section */}
-        <div className="card">
-          <h3 className="font-semibold text-navy-600 mb-3">QR Code & Inscription autonome</h3>
-          <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <div className="flex-shrink-0">
-              <div style={{ background: '#FFFFFF', padding: 12, display: 'inline-block', borderRadius: 8 }}>
-                <QRCode value={qrValue} size={160} level="M" />
+        {/* QR Code card — hero section */}
+        <div className="card bg-gradient-to-br from-navy-600 to-blue-700 border-0 text-white">
+          <div className="flex flex-col sm:flex-row gap-6 items-center">
+            {/* QR */}
+            <div className="flex-shrink-0 text-center">
+              <div className="bg-white rounded-2xl p-3 inline-block shadow-xl">
+                <QRCode value={qrUrl} size={150} level="M" />
               </div>
+              <p className="text-blue-200 text-xs mt-2">Scannez pour s'inscrire</p>
             </div>
-            <div className="flex-1 flex flex-col gap-3 w-full">
+            {/* Info */}
+            <div className="flex-1 flex flex-col gap-3">
               <div>
-                <label className="label">URL de votre Google Form</label>
-                <input
-                  className="input-field"
-                  placeholder="https://docs.google.com/forms/..."
-                  value={tournoi.googleFormUrl}
-                  onChange={(e) => handleUrlChange(e.target.value)}
-                />
-                {tournoi.googleFormUrl && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs text-gray-500 truncate flex-1">{tournoi.googleFormUrl}</span>
-                    <button
-                      className="text-xs text-navy-600 border border-navy-200 px-2 py-1 rounded hover:bg-navy-50"
-                      onClick={handleCopyLink}
-                    >
-                      {copied ? '✓ Copié' : 'Copier le lien'}
-                    </button>
-                  </div>
-                )}
+                <h3 className="font-black text-lg">📱 Inscription par QR Code</h3>
+                <p className="text-blue-200 text-sm mt-1">
+                  Projetez cet écran ou ouvrez la borne. Les participants scannent le QR code et s'inscrivent directement depuis leur téléphone.
+                </p>
               </div>
-              <button
-                className="btn-primary"
-                onClick={openKiosk}
-              >
-                📟 Ouvrir la borne d'inscription
-              </button>
+              <div className="bg-white/10 rounded-xl px-3 py-2 text-xs text-blue-200 font-mono break-all">
+                {qrUrl}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="bg-white text-navy-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-50 transition-colors"
+                  onClick={openKiosk}
+                >
+                  📟 Ouvrir la borne plein écran
+                </button>
+                <button
+                  className="bg-white/20 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-white/30 transition-colors border border-white/30"
+                  onClick={() => navigator.clipboard?.writeText(qrUrl)}
+                >
+                  Copier le lien
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Import from Sheets */}
-        <div className="card">
-          <h3 className="font-semibold text-navy-600 mb-3">Import depuis Google Sheets</h3>
-          <p className="text-sm text-gray-500 mb-3">
-            Copiez-collez les données depuis Google Sheets (colonnes : Nom équipe | Joueur 1 | Joueur 2 | Emplacement)
-          </p>
-          <textarea
-            className="input-field min-h-[100px] font-mono text-sm"
-            placeholder="Les Cigales&#9;Jean Dupont&#9;Marie Martin&#9;n°42&#10;Les Boules d'Or&#9;Pierre Martin&#9;&#9;n°15"
-            value={sheetText}
-            onChange={(e) => setSheetText(e.target.value)}
-          />
-          {importResult && (
-            <div className="text-sm mt-2 text-green-700 bg-green-50 px-3 py-2 rounded">
-              ✓ {importResult.added} équipe{importResult.added !== 1 ? 's' : ''} importée{importResult.added !== 1 ? 's' : ''}
-              {importResult.skipped > 0 && `, ${importResult.skipped} ignorée${importResult.skipped !== 1 ? 's' : ''}`}
+        {/* Pending registrations from phones */}
+        {pendingRegs.length > 0 && (
+          <div className="card border-2 border-blue-300 bg-blue-50">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-bold text-blue-800">
+                  📲 {pendingRegs.length} inscription{pendingRegs.length > 1 ? 's' : ''} en attente
+                </h3>
+                <p className="text-blue-600 text-xs mt-0.5">Reçues depuis les téléphones des participants</p>
+              </div>
+              <button
+                className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                onClick={handleImportPending}
+                disabled={importing}
+              >
+                {importing ? 'Import...' : '✓ Valider tout'}
+              </button>
             </div>
-          )}
-          <button
-            className="btn-secondary mt-3"
-            onClick={handleImport}
-            disabled={!sheetText.trim()}
-          >
-            Importer
-          </button>
-        </div>
+            <div className="flex flex-col gap-1">
+              {pendingRegs.map((r) => (
+                <div key={r._id} className="bg-white rounded-xl px-3 py-2 text-sm flex items-center gap-2">
+                  <span className="font-bold text-gray-800">{r.nom}</span>
+                  <span className="text-gray-400">—</span>
+                  <span className="text-gray-600">{r.j1}{r.j2 ? `, ${r.j2}` : ''}{r.j3 ? `, ${r.j3}` : ''}</span>
+                  {r.empl && <span className="text-gray-400 text-xs ml-auto">{r.empl}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {importMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-xl text-sm font-medium">
+            {importMsg}
+          </div>
+        )}
 
         {/* Manual add */}
         {!tournoi.started && (
           <div className="card">
             <details>
-              <summary className="font-semibold text-navy-600 cursor-pointer select-none">
-                ➕ Ajout manuel d'une équipe
+              <summary className="font-bold text-navy-600 cursor-pointer select-none flex items-center gap-2">
+                <span>➕ Ajouter une équipe manuellement</span>
               </summary>
-              <div className="mt-4">
-                <ManualAddForm tournoi={tournoi} />
-              </div>
+              <ManualAddForm tournoi={tournoi} />
             </details>
           </div>
         )}
 
         {/* Teams list */}
         <div className="card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-navy-600">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-navy-600">
               Équipes inscrites
-              <span className="ml-2 bg-navy-50 text-navy-600 text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="ml-2 bg-navy-50 text-navy-600 text-xs font-black px-2 py-0.5 rounded-full border border-navy-100">
                 {tournoi.equipes.length}
               </span>
             </h3>
             {!tournoi.started && (
-              <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 {startError && <span className="text-red-600 text-sm">{startError}</span>}
                 <button
-                  className="btn-primary disabled:opacity-50"
+                  className="btn-primary disabled:opacity-40"
                   onClick={handleStart}
                   disabled={!canStart}
+                  title={!canStart ? `Minimum ${tournoi.eqMin} équipes requis` : ''}
                 >
                   🚀 Lancer le tournoi
                 </button>
@@ -372,28 +422,32 @@ export default function Equipes() {
           </div>
 
           {tournoi.equipes.length === 0 ? (
-            <p className="text-gray-400 text-sm italic text-center py-4">
-              Aucune équipe inscrite
-            </p>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">👥</div>
+              <p className="text-gray-400 text-sm">Aucune équipe inscrite</p>
+              <p className="text-gray-300 text-xs mt-1">Utilisez le QR code ou ajoutez manuellement</p>
+            </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {tournoi.equipes.map((eq) => (
+              {tournoi.equipes.map((eq, i) => (
                 <div
                   key={eq.id}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg ${eq.forfait ? 'bg-red-50 opacity-60' : 'bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${eq.forfait ? 'bg-red-50 opacity-60' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
                 >
+                  <span className="text-gray-400 font-bold text-sm w-6 text-center">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <span className={`font-semibold ${eq.forfait ? 'line-through text-red-500' : 'text-gray-800'}`}>
+                    <span className={`font-bold ${eq.forfait ? 'line-through text-red-400' : 'text-gray-800'}`}>
                       {eq.nom}
                     </span>
-                    {eq.forfait && <span className="ml-2 text-xs text-red-500">Forfait</span>}
+                    {eq.forfait && <span className="ml-2 text-xs text-red-400 font-semibold">Forfait</span>}
                     <div className="text-gray-500 text-xs mt-0.5">
-                      {eq.j1}{eq.j2 ? ` & ${eq.j2}` : ''}{eq.empl ? ` — ${eq.empl}` : ''}
+                      👤 {eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}
+                      {eq.empl && <span className="ml-2">🏕️ {eq.empl}</span>}
                     </div>
                   </div>
                   {!tournoi.started && (
                     <button
-                      className="text-red-500 hover:text-red-700 text-sm shrink-0"
+                      className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition-colors shrink-0"
                       onClick={() => removeEquipe(tournoi.id, eq.id)}
                     >
                       Retirer
@@ -402,6 +456,12 @@ export default function Equipes() {
                 </div>
               ))}
             </div>
+          )}
+
+          {!tournoi.started && tournoi.equipes.length < tournoi.eqMin && (
+            <p className="text-center text-orange-500 text-xs mt-3 font-medium">
+              ⚠️ Minimum {tournoi.eqMin} équipes pour lancer ({tournoi.eqMin - tournoi.equipes.length} manquante{tournoi.eqMin - tournoi.equipes.length > 1 ? 's' : ''})
+            </p>
           )}
         </div>
       </div>
