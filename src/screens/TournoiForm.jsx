@@ -3,7 +3,7 @@ import { useTournamentStore } from '../store/useTournamentStore';
 
 const DEFAULTS = {
   nom: '', cat: 'adultes', date: '', heure: '',
-  eqMin: 4, eqMax: 16, joueursParEq: 2,
+  eqMin: 4, eqMax: 16, eqUnlimited: false, joueursParEq: 2,
   scoreCible: 13, matchNulAutorise: false,
   nbTours: 3, nbTerrains: 4,
 };
@@ -29,9 +29,9 @@ export default function TournoiForm({ onCancel, onCreated }) {
     setError('');
     if (!form.nom.trim()) { setError('Le nom du tournoi est obligatoire'); return; }
     if (form.eqMin < 2) { setError('Minimum 2 équipes'); return; }
-    if (form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
+    if (!form.eqUnlimited && form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
     try {
-      const id = createTournoi(form);
+      const id = createTournoi({ ...form, eqMax: form.eqUnlimited ? 9999 : form.eqMax });
       selectTournoi(id);
       onCreated?.(id);
     } catch (err) {
@@ -93,7 +93,23 @@ export default function TournoiForm({ onCancel, onCreated }) {
               <input type="number" className="input-field" min={2} value={form.eqMin} onChange={(e) => set('eqMin', Number(e.target.value))} />
             </Field>
             <Field label="Équipes maximum">
-              <input type="number" className="input-field" min={2} value={form.eqMax} onChange={(e) => set('eqMax', Number(e.target.value))} />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number" className="input-field"
+                  min={2} value={form.eqMax}
+                  disabled={form.eqUnlimited}
+                  onChange={(e) => set('eqMax', Number(e.target.value))}
+                />
+                <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={form.eqUnlimited}
+                    onChange={(e) => set('eqUnlimited', e.target.checked)}
+                    className="w-4 h-4 accent-navy-600"
+                  />
+                  <span className="text-sm font-bold text-gray-700">Illimité</span>
+                </label>
+              </div>
             </Field>
             <Field label="Format">
               <select className="input-field" value={form.joueursParEq} onChange={(e) => set('joueursParEq', Number(e.target.value))}>

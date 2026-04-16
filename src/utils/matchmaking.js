@@ -81,23 +81,6 @@ export function generateRound(tournoi, tourNumber) {
     teamsToUse = sortByRanking(activeTeams);
   }
 
-  // Handle odd number — give bye before pairing
-  if (teamsToUse.length % 2 !== 0) {
-    const byeTeam = pickByeTeam(teamsToUse);
-    teamsToUse = teamsToUse.filter((t) => t.id !== byeTeam.id);
-    newMatches.push({
-      tour: tourNumber,
-      A: byeTeam.id,
-      B: null,
-      sA: scoreCible,
-      sB: 0,
-      done: true,
-      terrain: null,
-      bye: true,
-    });
-    // Do NOT mutate team objects here — recalculateStandings is the single source of truth.
-  }
-
   const pairs = pairTeams(teamsToUse);
 
   pairs.forEach(({ A, B }, idx) => {

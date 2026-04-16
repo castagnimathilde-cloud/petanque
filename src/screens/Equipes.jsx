@@ -74,7 +74,7 @@ function KioskMode({ tournoi, onClose }) {
           {/* Teams list */}
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 border border-white/20 flex-1">
             <h3 className="text-white font-bold mb-3">
-              Inscrits ({tournoi.equipes.length}/{tournoi.eqMax})
+              Inscrits ({tournoi.equipes.length}/{tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax})
             </h3>
             <div className="overflow-y-auto max-h-64 flex flex-col gap-2">
               {tournoi.equipes.length === 0 && (
@@ -195,6 +195,7 @@ export default function Equipes() {
 
   const [startError, setStartError] = useState('');
   const [pendingRegs, setPendingRegs] = useState([]);
+  const [selectedRegs, setSelectedRegs] = useState(new Set());
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
   const [apiStatus, setApiStatus] = useState('unknown'); // 'ok' | 'error:<msg>' | 'unknown'
@@ -250,16 +251,17 @@ export default function Equipes() {
 
   if (!tournoi) return null;
 
-  const handleImportPending = async () => {
-    if (pendingRegs.length === 0) return;
+  const handleImportRegs = async (regsToImport) => {
+    if (regsToImport.length === 0) return;
     setImporting(true);
     let added = 0, skipped = 0;
     const newEquipes = [...tournoi.equipes];
     const ids = [];
+    const isUnlimited = tournoi.eqMax >= 9999;
 
-    for (const reg of pendingRegs) {
+    for (const reg of regsToImport) {
       ids.push(reg._id);
-      if (newEquipes.length >= tournoi.eqMax) { skipped++; continue; }
+      if (!isUnlimited && newEquipes.length >= tournoi.eqMax) { skipped++; continue; }
       if (newEquipes.find((e) => e.nom.toLowerCase() === reg.nom.toLowerCase())) { skipped++; continue; }
       newEquipes.push({
         id: Date.now() + Math.random(),
@@ -274,7 +276,8 @@ export default function Equipes() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
     }).catch(() => {});
-    setPendingRegs([]);
+    setPendingRegs((prev) => prev.filter((r) => !ids.includes(r._id)));
+    setSelectedRegs(new Set());
     setImportMsg(`✓ ${added} équipe${added !== 1 ? 's' : ''} importée${added !== 1 ? 's' : ''}${skipped > 0 ? `, ${skipped} ignorée${skipped !== 1 ? 's' : ''}` : ''}`);
     setTimeout(() => setImportMsg(''), 4000);
     setImporting(false);
@@ -302,7 +305,7 @@ export default function Equipes() {
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-sm font-bold px-3 py-1 rounded-full ${tournoi.equipes.length >= tournoi.eqMin ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-              {tournoi.equipes.length}/{tournoi.eqMax} équipes
+              {tournoi.equipes.length}/{tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax} équipes
             </span>
           </div>
         </div>
@@ -375,29 +378,56 @@ export default function Equipes() {
         {/* Pending registrations from phones */}
         {pendingRegs.length > 0 && (
           <div className="card border-2 border-blue-300 bg-blue-50">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div>
                 <h3 className="font-bold text-blue-800">
                   📲 {pendingRegs.length} inscription{pendingRegs.length > 1 ? 's' : ''} en attente
                 </h3>
                 <p className="text-blue-600 text-xs mt-0.5">Reçues depuis les téléphones des participants</p>
               </div>
-              <button
-                className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-                onClick={handleImportPending}
-                disabled={importing}
-              >
-                {importing ? 'Import...' : '✓ Valider tout'}
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {selectedRegs.size > 0 && (
+                  <button
+                    className="bg-green-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                    onClick={() => handleImportRegs(pendingRegs.filter((r) => selectedRegs.has(r._id)))}
+                    disabled={importing}
+                  >
+                    ✓ Valider la sélection ({selectedRegs.size})
+                  </button>
+                )}
+                <button
+                  className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  onClick={() => handleImportRegs(pendingRegs)}
+                  disabled={importing}
+                >
+                  {importing ? 'Import...' : '✓ Valider tout'}
+                </button>
+              </div>
             </div>
             <div className="flex flex-col gap-1">
-              {pendingRegs.map((r) => (
-                <div key={r._id} className="bg-white rounded-xl px-3 py-2 text-sm flex items-center gap-2">
-                  <span className="font-bold text-gray-800">{r.nom}</span>
-                  <span className="text-gray-400">—</span>
-                  <span className="text-gray-600">{r.j1}{r.j2 ? `, ${r.j2}` : ''}{r.j3 ? `, ${r.j3}` : ''}</span>
-                </div>
-              ))}
+              {pendingRegs.map((r) => {
+                const checked = selectedRegs.has(r._id);
+                return (
+                  <label
+                    key={r._id}
+                    className={`bg-white rounded-xl px-3 py-2 text-sm flex items-center gap-3 cursor-pointer hover:bg-blue-50 transition-colors ${checked ? 'ring-2 ring-blue-400' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setSelectedRegs((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(r._id)) next.delete(r._id); else next.add(r._id);
+                        return next;
+                      })}
+                      className="w-4 h-4 accent-blue-600 shrink-0"
+                    />
+                    <span className="font-bold text-gray-800">{r.nom}</span>
+                    <span className="text-gray-400">—</span>
+                    <span className="text-gray-600">{r.j1}{r.j2 ? `, ${r.j2}` : ''}{r.j3 ? `, ${r.j3}` : ''}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
         )}

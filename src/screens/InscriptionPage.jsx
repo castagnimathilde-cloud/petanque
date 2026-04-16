@@ -178,7 +178,7 @@ export default function InscriptionPage({ tournoiId }) {
           </form>
 
           <p className="text-center text-gray-400 text-xs mt-1">
-            🎯 Score cible : {tournoi.scoreCible} pts · max {tournoi.eqMax} équipes
+            🎯 Score cible : {tournoi.scoreCible} pts · max {tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax} équipes
           </p>
         </div>
       </div>
