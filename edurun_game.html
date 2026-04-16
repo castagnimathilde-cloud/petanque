@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EduRun — Course Éducative</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, sans-serif;
+      color: #e6edf3;
+      gap: 12px;
+      padding: 16px;
+    }
+    h1 { font-size: 1.6rem; letter-spacing: 0.05em; }
+    canvas { border: 2px solid #30363d; border-radius: 8px; display: block; }
+    #msg { font-size: 1.2rem; font-weight: bold; min-height: 2rem; text-align: center; }
+    #info { font-size: 0.82rem; color: #8b949e; text-align: center; line-height: 1.8; }
+    button {
+      padding: 9px 28px; font-size: 0.95rem; font-weight: 600;
+      background: #238636; border: 1px solid #2ea043; color: #fff;
+      border-radius: 6px; cursor: pointer;
+    }
+    button:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+  <h1>EduRun 🏃</h1>
+  <canvas id="c" width="860" height="360"></canvas>
+  <div id="msg"></div>
+  <div id="info">
+    <b style="color:#e05252">J1</b> → Q &nbsp;&nbsp;
+    <b style="color:#3cb371">J2</b> → P &nbsp;&nbsp;
+    <b style="color:#4d94ff">J3</b> → V &nbsp;&nbsp;
+    <b style="color:#f0a030">J4</b> → N
+  </div>
+  <button id="btnStart">Nouvelle partie</button>
+
+  <script>
+  "use strict";
+
+  // ================================================
+  //  OBSTACLES_CONFIG — modifiable librement ici
+  // ================================================
+  const OBSTACLES_CONFIG = [
+    {
+      type: 'pierre',
+      label: 'Pierre',
+      color: '#8c8c8c',
+      shade: '#4d4d4d',
+      w: 30, h: 28,
+      minSpacing: 220,  // px minimum entre deux obstacles sur la même voie
+    },
+    {
+      type: 'caisse',
+      label: 'Caisse',
+      color: '#b87333',
+      shade: '#6e3d10',
+      w: 28, h: 28,
+      minSpacing: 260,
+    },
+    {
+      type: 'trou',
+      label: 'Trou',
+      color: '#111',
+      shade: '#333',
+      w: 46, h: 14,
+      minSpacing: 300,
+    },
+  ];
+  // ================================================
+
+  // ─── Constantes ──────────────────────────────────
+  const CW          = 860;
+  const CH          = 360;
+  const LANE_H      = 90;           // hauteur de chaque voie (px canvas)
+  const TRACK_LEN   = 3000;         // longueur de la piste (px monde)
+  const SPRITE_X    = 180;          // position écran fixe du sprite joueur
+  const STEP        = 32;           // avance par pression de touche (px monde)
+  const STUN_MS     = 1000;         // durée du recul (ms)
+  const SETBACK_PX  = 240;          // recul animé lors d'un contact (px monde)
+  const FLASH_TICK  = 85;           // ms par alternance rouge/normal
+
+  const PLAYERS_DEF = [
+    { name: 'J1', key: 'KeyQ', color: '#e05252' },
+    { name: 'J2', key: 'KeyP', color: '#3cb371' },
+    { name: 'J3', key: 'KeyV', color: '#4d94ff' },
+    { name: 'J4', key: 'KeyN', color: '#f0a030' },
+  ];
+
+  // ─── État ────────────────────────────────────────
+  const canvas = document.getElementById('c');
+  const ctx    = canvas.getContext('2d');
+  const msgEl  = document.getElementById('msg');
+
+  let players   = [];
+  let obstacles = [];  // { laneIdx, worldX, cfgIdx, hit }
+  let gameState = 'idle';
+  let rafId     = null;
+  let lastTs    = 0;
+
+  // ─── Initialisation ──────────────────────────────
+  function initGame() {
+    players = PLAYERS_DEF.map((d, i) => ({
+      ...d,
+      laneIdx:       i,
+      worldX:        0,
+      stunUntil:     0,
+      setbackFrom:   0,
+      setbackTarget: 0,
+      flashMs:       0,
+    }));
+    obstacles = generateObstacles();
+    gameState = 'running';
+    msgEl.textContent = '';
+  }
+
+  function generateObstacles() {
+    const list = [];
+    for (let lane = 0; lane < PLAYERS_DEF.length; lane++) {
+      let x = 280 + Math.random() * 120;
+      while (x < TRACK_LEN - 320) {
+        const cfgIdx = Math.floor(Math.random() * OBSTACLES_CONFIG.length);
+        list.push({ laneIdx: lane, worldX: Math.round(x), cfgIdx, hit: false });
+        x += OBSTACLES_CONFIG[cfgIdx].minSpacing + Math.random() * 170;
+      }
+    }
+    return list;
+  }
+
+  // ─── Input ───────────────────────────────────────
+  const heldKeys = new Set();
+
+  document.addEventListener('keydown', e => {
+    if (e.repeat || heldKeys.has(e.code)) return;
+    heldKeys.add(e.code);
+    if (gameState !== 'running') return;
+
+    const now = performance.now();
+    for (const p of players) {
+      if (e.code !== p.key) continue;
+      if (now < p.stunUntil) continue;
+      if (p.worldX >= TRACK_LEN) continue;
+      p.worldX = Math.min(TRACK_LEN, p.worldX + STEP);
+    }
+  });
+
+  document.addEventListener('keyup', e => heldKeys.delete(e.code));
+
+  document.getElementById('btnStart').addEventListener('click', () => {
+    if (rafId) cancelAnimationFrame(rafId);
+    initGame();
+    lastTs = performance.now();
+    rafId  = requestAnimationFrame(gameLoop);
+  });
+
+  // ─── Collisions ──────────────────────────────────
+  function checkCollisions(now) {
+    for (const obs of obstacles) {
+      if (obs.hit) continue;
+      const p = players[obs.laneIdx];
+      if (now < p.stunUntil) continue;
+      const half = OBSTACLES_CONFIG[obs.cfgIdx].w / 2;
+      if (p.worldX + 12 >= obs.worldX - half && p.worldX - 12 <= obs.worldX + half) {
+        obs.hit         = true;
+        p.stunUntil     = now + STUN_MS;
+        p.setbackFrom   = p.worldX;
+        p.setbackTarget = Math.max(0, p.worldX - SETBACK_PX);
+        p.flashMs       = STUN_MS;
+      }
+    }
+  }
+
+  // ─── Dessin des obstacles ─────────────────────────
+  function drawPierre(cfg, sx, groundY) {
+    const cy = groundY - cfg.h / 2;
+    ctx.fillStyle   = cfg.color;
+    ctx.strokeStyle = cfg.shade;
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.ellipse(sx, cy, cfg.w / 2, cfg.h / 2, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = cfg.shade;
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx - 6, cy - 5); ctx.lineTo(sx - 2, cy + 2);
+    ctx.moveTo(sx + 3, cy - 6); ctx.lineTo(sx + 7, cy + 3);
+    ctx.stroke();
+  }
+
+  function drawCaisse(cfg, sx, groundY) {
+    const hw = cfg.w / 2;
+    const hh = cfg.h / 2;
+    const cy = groundY - hh;
+    ctx.fillStyle   = cfg.color;
+    ctx.strokeStyle = cfg.shade;
+    ctx.lineWidth   = 2;
+    ctx.fillRect(sx - hw, cy - hh, cfg.w, cfg.h);
+    ctx.strokeRect(sx - hw, cy - hh, cfg.w, cfg.h);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx - hw, cy - hh); ctx.lineTo(sx + hw, cy + hh);
+    ctx.moveTo(sx + hw, cy - hh); ctx.lineTo(sx - hw, cy + hh);
+    ctx.stroke();
+    ctx.fillStyle = cfg.shade;
+    ctx.beginPath();
+    ctx.arc(sx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawTrou(cfg, sx, groundY) {
+    ctx.fillStyle   = '#1a1a1a';
+    ctx.strokeStyle = cfg.shade;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, groundY + 2, cfg.w / 2, cfg.h / 2 + 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(sx, groundY + 2, cfg.w / 2 - 8, cfg.h / 2 - 1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ─── Dessin du joueur ─────────────────────────────
+  function drawPlayer(p, groundY) {
+    const x       = SPRITE_X;
+    const flashing = p.flashMs > 0 &&
+                     Math.floor((STUN_MS - p.flashMs) / FLASH_TICK) % 2 === 0;
+
+    // Corps
+    ctx.fillStyle = flashing ? '#ff2222' : p.color;
+    ctx.beginPath();
+    ctx.ellipse(x, groundY - 10, 9, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tête
+    ctx.fillStyle = flashing ? '#ff5555' : '#f5cba7';
+    ctx.beginPath();
+    ctx.arc(x, groundY - 26, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nom
+    ctx.fillStyle    = '#fff';
+    ctx.font         = 'bold 10px system-ui';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(p.name, x, groundY - 35);
+
+    // Indicateur de choc
+    if (p.flashMs > 0) {
+      ctx.font = '13px sans-serif';
+      ctx.fillText('💫', x, groundY - 47);
+    }
+  }
+
+  // ─── Dessin de la scène ───────────────────────────
+  function draw() {
+    ctx.clearRect(0, 0, CW, CH);
+
+    for (const p of players) {
+      const top     = p.laneIdx * LANE_H;
+      const groundY = top + 66;
+
+      // Fond de voie
+      ctx.fillStyle = p.laneIdx % 2 === 0 ? '#161b22' : '#0d1117';
+      ctx.fillRect(0, top, CW, LANE_H);
+
+      // Séparateur de voie
+      if (p.laneIdx > 0) {
+        ctx.strokeStyle = '#21262d';
+        ctx.lineWidth   = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, top);
+        ctx.lineTo(CW, top);
+        ctx.stroke();
+      }
+
+      // Bandeau couleur latéral
+      ctx.fillStyle = p.color;
+      ctx.fillRect(0, top, 4, LANE_H - 1);
+
+      // Ligne de sol
+      ctx.strokeStyle = '#30363d';
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.moveTo(6, groundY);
+      ctx.lineTo(CW, groundY);
+      ctx.stroke();
+
+      // Repère de départ
+      const startSX = SPRITE_X - p.worldX;
+      if (startSX >= 6 && startSX <= CW) {
+        ctx.strokeStyle = '#2ea04360';
+        ctx.lineWidth   = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(startSX, top + 6);
+        ctx.lineTo(startSX, groundY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Ligne d'arrivée
+      const finishSX = TRACK_LEN - p.worldX + SPRITE_X;
+      if (finishSX >= 6 && finishSX <= CW) {
+        ctx.strokeStyle = '#ffffff88';
+        ctx.lineWidth   = 3;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(finishSX, top + 4);
+        ctx.lineTo(finishSX, groundY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle    = '#fff';
+        ctx.font         = '12px sans-serif';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('🏁', finishSX, top + 3);
+      }
+
+      // Obstacles de cette voie
+      for (const obs of obstacles) {
+        if (obs.laneIdx !== p.laneIdx || obs.hit) continue;
+        const cfg = OBSTACLES_CONFIG[obs.cfgIdx];
+        const sx  = obs.worldX - p.worldX + SPRITE_X;
+        if (sx < -60 || sx > CW + 60) continue;
+        if      (cfg.type === 'pierre') drawPierre(cfg, sx, groundY);
+        else if (cfg.type === 'caisse') drawCaisse(cfg, sx, groundY);
+        else                            drawTrou(cfg, sx, groundY);
+      }
+
+      // Sprite du joueur
+      drawPlayer(p, groundY);
+
+      // Barre de progression
+      const barX = 10, barY = groundY + 8, barW = CW - 20, barH = 6;
+      ctx.fillStyle = '#21262d';
+      ctx.fillRect(barX, barY, barW, barH);
+      const pct = Math.min(1, p.worldX / TRACK_LEN);
+      if (pct > 0) {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(barX, barY, barW * pct, barH);
+      }
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(barX + barW * pct - 2, barY - 2, 4, barH + 4);
+    }
+  }
+
+  // ─── Boucle principale ────────────────────────────
+  function gameLoop(ts) {
+    const dt = ts - lastTs;
+    lastTs = ts;
+    rafId  = requestAnimationFrame(gameLoop);
+
+    if (gameState !== 'running') { draw(); return; }
+
+    // Animation de recul + décrément du flash
+    for (const p of players) {
+      if (p.flashMs > 0) {
+        p.flashMs = Math.max(0, p.flashMs - dt);
+      }
+      if (ts < p.stunUntil) {
+        const elapsed = STUN_MS - (p.stunUntil - ts);
+        const t = Math.min(1, Math.max(0, elapsed / STUN_MS));
+        p.worldX = p.setbackFrom + (p.setbackTarget - p.setbackFrom) * t;
+      }
+    }
+
+    checkCollisions(ts);
+
+    // Victoire
+    const winner = players.find(p => p.worldX >= TRACK_LEN);
+    if (winner) {
+      gameState = 'finished';
+      msgEl.textContent = `🏆 ${winner.name} remporte la course !`;
+    }
+
+    draw();
+  }
+
+  // ─── Écran d'attente initial ──────────────────────
+  (function drawIdle() {
+    ctx.fillStyle    = '#0d1117';
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.fillStyle    = '#8b949e';
+    ctx.font         = '16px system-ui';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Appuyez sur « Nouvelle partie » pour commencer', CW / 2, CH / 2);
+  })();
+  </script>
+</body>
+</html>
