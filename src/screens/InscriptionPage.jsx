@@ -11,14 +11,17 @@ export default function InscriptionPage({ tournoiId }) {
 
   useEffect(() => {
     fetch(`/api/tournoi/${tournoiId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) { setError(data.error); }
-        else { setTournoi(data); }
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || data.error) {
+          setError(data.error || `Erreur serveur (${r.status})`);
+        } else {
+          setTournoi(data);
+        }
         setLoading(false);
       })
       .catch(() => {
-        setError("Impossible de charger le tournoi. Vérifiez votre connexion WiFi.");
+        setError("Impossible de joindre le serveur. Vérifiez votre connexion internet.");
         setLoading(false);
       });
   }, [tournoiId]);
@@ -58,13 +61,35 @@ export default function InscriptionPage({ tournoiId }) {
   }
 
   if (error) {
+    const isNotFound = error.toLowerCase().includes('introuvable');
+    const isApiConfig = error.toLowerCase().includes('configurée') || error.toLowerCase().includes('redis');
     return (
       <div className="min-h-screen bg-gradient-to-br from-navy-600 to-blue-800 flex items-center justify-center p-6">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Tournoi introuvable</h2>
+          <div className="text-5xl mb-4">{isNotFound ? '🔍' : '⚠️'}</div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">
+            {isNotFound ? 'Tournoi introuvable' : 'Connexion impossible'}
+          </h2>
           <p className="text-gray-500 text-sm">{error}</p>
-          <p className="text-gray-400 text-xs mt-4">Assurez-vous d'être connecté au WiFi du camping et que le tournoi est actif.</p>
+          {isApiConfig ? (
+            <p className="text-gray-400 text-xs mt-4 bg-gray-50 rounded-xl p-3">
+              L'organisateur doit configurer les variables Redis dans Vercel (UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN).
+            </p>
+          ) : isNotFound ? (
+            <p className="text-gray-400 text-xs mt-4">
+              L'organisateur doit ouvrir l'écran "Équipes" sur son appareil pour activer les inscriptions.
+            </p>
+          ) : (
+            <p className="text-gray-400 text-xs mt-4">
+              Vérifiez votre connexion internet et réessayez.
+            </p>
+          )}
+          <button
+            className="mt-5 text-sm text-blue-600 underline"
+            onClick={() => window.location.reload()}
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );

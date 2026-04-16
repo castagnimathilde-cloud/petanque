@@ -1,6 +1,4 @@
-import { Redis } from '@upstash/redis';
-
-const redis = Redis.fromEnv();
+import { redisGet, redisSet } from '../_redis.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,14 +9,22 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'GET') {
-    const data = await redis.get(`tournoi:${id}`);
-    if (!data) return res.status(404).json({ error: 'Tournoi introuvable' });
-    return res.json(data);
+    try {
+      const data = await redisGet(`tournoi:${id}`);
+      if (!data) return res.status(404).json({ error: 'Tournoi introuvable' });
+      return res.json(data);
+    } catch (e) {
+      return res.status(503).json({ error: 'Erreur serveur : ' + e.message });
+    }
   }
 
   if (req.method === 'PUT') {
-    await redis.set(`tournoi:${id}`, req.body, { ex: 86400 * 7 });
-    return res.json({ ok: true });
+    try {
+      await redisSet(`tournoi:${id}`, req.body, 86400 * 7);
+      return res.json({ ok: true });
+    } catch (e) {
+      return res.status(503).json({ error: 'Erreur serveur : ' + e.message });
+    }
   }
 
   res.status(405).json({ error: 'Method not allowed' });
