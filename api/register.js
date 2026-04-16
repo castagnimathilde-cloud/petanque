@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+import { redisGet, redisSet } from './_redis.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,23 +7,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let redis;
-  try {
-    redis = Redis.fromEnv();
-  } catch {
-    return res.status(503).json({ error: 'API non configurée — variables Redis manquantes dans Vercel.' });
-  }
-
   const { tournoiId, nom, j1, j2, j3, empl } = req.body;
 
   if (!nom || !j1) return res.status(400).json({ error: 'Nom et Joueur 1 obligatoires' });
 
   try {
-    const tournoi = await redis.get(`tournoi:${tournoiId}`);
+    const tournoi = await redisGet(`tournoi:${tournoiId}`);
     if (!tournoi) return res.status(404).json({ error: 'Tournoi introuvable' });
 
     const key = `regs:${tournoiId}`;
-    const existing = (await redis.get(key)) || [];
+    const existing = (await redisGet(key)) || [];
 
     const duplicate = existing.find(
       (r) => r.nom.toLowerCase() === nom.trim().toLowerCase()
@@ -42,10 +35,10 @@ export default async function handler(req, res) {
     };
 
     existing.push(reg);
-    await redis.set(key, existing, { ex: 86400 });
+    await redisSet(key, existing, 86400);
 
     return res.json({ ok: true });
-  } catch {
-    return res.status(503).json({ error: 'Erreur de connexion à la base de données Redis.' });
+  } catch (e) {
+    return res.status(503).json({ error: 'Erreur serveur : ' + e.message });
   }
 }
