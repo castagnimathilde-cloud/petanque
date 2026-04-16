@@ -365,7 +365,7 @@ export default function Equipes() {
                   L'API serveur ne répond pas. Les participants ne pourront pas s'inscrire via le QR code sur Vercel.
                 </p>
                 <p className="text-amber-600 text-xs mt-2 font-mono">
-                  → Vérifiez que UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN sont configurés dans Vercel → Settings → Environment Variables.
+                  → Vérifiez que REDIS_URL est bien configuré dans Vercel → Settings → Environment Variables (avec une valeur non vide).
                 </p>
                 <p className="text-amber-600 text-xs mt-1">
                   En attendant, utilisez la borne locale (bouton ci-dessus) ou l'ajout manuel.
