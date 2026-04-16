@@ -121,7 +121,6 @@ export const useTournamentStore = create((set, get) => ({
       j1: equipeData.j1 || '',
       j2: equipeData.j2 || '',
       j3: equipeData.j3 || '',
-      empl: equipeData.empl || '',
       v: 0, d: 0, pts: 0, ptsCont: 0,
       matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
     };
@@ -185,6 +184,27 @@ export const useTournamentStore = create((set, get) => ({
   },
 
   // ── Tournament flow ───────────────────────────────────────────────────────
+
+  resetToRegistration(tournoiId) {
+    set((s) => ({
+      tournois: s.tournois.map((t) => {
+        if (t.id !== tournoiId) return t;
+        return {
+          ...t,
+          started: false,
+          tourActuel: 0,
+          matchs: [],
+          equipes: t.equipes.map((e) => ({
+            ...e,
+            v: 0, d: 0, pts: 0, ptsCont: 0,
+            matchsJoues: 0, adversaires: [], byeRecu: false,
+          })),
+        };
+      }),
+    }));
+    get()._save();
+    set({ activeScreen: 'equipes' });
+  },
 
   startTournoi(tournoiId) {
     const t = get().getTournoi(tournoiId);

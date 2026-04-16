@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { tournoiId, nom, j1, j2, j3, empl } = req.body;
+  const { tournoiId, nom, j1, j2, j3 } = req.body;
 
   if (!nom || !j1) return res.status(400).json({ error: 'Nom et Joueur 1 obligatoires' });
 
@@ -31,7 +31,6 @@ export default async function handler(req, res) {
       j1: (j1 || '').trim(),
       j2: (j2 || '').trim(),
       j3: (j3 || '').trim(),
-      empl: (empl || '').trim(),
     };
 
     existing.push(reg);
