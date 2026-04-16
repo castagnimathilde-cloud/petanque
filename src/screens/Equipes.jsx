@@ -210,6 +210,7 @@ export default function Equipes() {
   const [pendingRegs, setPendingRegs] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
+  const [apiStatus, setApiStatus] = useState('unknown'); // 'ok' | 'error' | 'unknown'
   const lastTsRef = useRef(0);
 
   const qrUrl = tournoi ? `${window.location.origin}/?register=${tournoi.id}` : '';
@@ -226,7 +227,11 @@ export default function Equipes() {
         eqMax: tournoi.eqMax,
         scoreCible: tournoi.scoreCible,
       }),
-    }).catch(() => {});
+    })
+      .then((r) => {
+        setApiStatus(r.ok ? 'ok' : 'error');
+      })
+      .catch(() => setApiStatus('error'));
   }, [tournoi?.id, tournoi?.started]);
 
   // Poll for new registrations from participants' phones
@@ -348,6 +353,27 @@ export default function Equipes() {
             </div>
           </div>
         </div>
+
+        {/* API connection status */}
+        {apiStatus === 'error' && (
+          <div className="card border-2 border-amber-300 bg-amber-50">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="font-bold text-amber-800">QR code non fonctionnel en production</h3>
+                <p className="text-amber-700 text-sm mt-1">
+                  L'API serveur ne répond pas. Les participants ne pourront pas s'inscrire via le QR code sur Vercel.
+                </p>
+                <p className="text-amber-600 text-xs mt-2 font-mono">
+                  → Vérifiez que UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN sont configurés dans Vercel → Settings → Environment Variables.
+                </p>
+                <p className="text-amber-600 text-xs mt-1">
+                  En attendant, utilisez la borne locale (bouton ci-dessus) ou l'ajout manuel.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Pending registrations from phones */}
         {pendingRegs.length > 0 && (
