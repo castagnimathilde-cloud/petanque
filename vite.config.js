@@ -87,8 +87,8 @@ function registrationApiPlugin() {
           return
         }
 
-        // DELETE /api/registrations — organizer claims registrations after import
-        if (req.method === 'DELETE' && rawPath === '/registrations') {
+        // DELETE /api/registrations/:tournoiId — organizer claims registrations after import
+        if (req.method === 'DELETE' && rawPath.startsWith('/registrations/')) {
           readBody(({ ids }) => {
             store.registrations = store.registrations.filter((r) => !ids.includes(r._id))
             res.end(JSON.stringify({ ok: true }))

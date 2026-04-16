@@ -272,7 +272,7 @@ export default function Equipes() {
       added++;
     }
     importEquipes(tournoi.id, newEquipes);
-    await fetch('/api/registrations', {
+    await fetch(`/api/registrations/${tournoi.id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
