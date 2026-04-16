@@ -55,7 +55,10 @@ function MatchCard({ match, matchIndex, tournoi }) {
     if (e.key === 'Enter' && next) next.focus();
   };
 
-  const isValid = sA !== '' && sB !== '';
+  const numA = parseInt(sA, 10);
+  const numB = parseInt(sB, 10);
+  const isValid = !isNaN(numA) && !isNaN(numB) && numA >= 0 && numB >= 0
+    && (tournoi.matchNulAutorise || numA !== numB);
   const terrainLabel = match.terrain ? `Terrain ${match.terrain}` : 'Sans terrain';
   const winnerA = match.done && match.sA > match.sB;
   const winnerB = match.done && match.sB > match.sA;

@@ -1,10 +1,6 @@
 import { create } from 'zustand';
-import { loadData, saveData, genId } from '../utils/storage';
+import { loadData, saveData, genId, UNLIMITED_EQ_MAX } from '../utils/storage';
 import { generateRound, recalculateStandings } from '../utils/matchmaking';
-
-const persist = (fn) => (...args) => {
-  fn(...args);
-};
 
 function getInitialState() {
   const data = loadData();
@@ -109,7 +105,7 @@ export const useTournamentStore = create((set, get) => ({
     const t = get().getTournoi(tournoiId);
     if (!t) return { error: 'Tournoi introuvable' };
     if (t.started) return { error: 'Le tournoi est déjà démarré' };
-    if (t.eqMax < 9999 && t.equipes.length >= t.eqMax) return { error: `Maximum ${t.eqMax} équipes atteint` };
+    if (t.eqMax < UNLIMITED_EQ_MAX && t.equipes.length >= t.eqMax) return { error: `Maximum ${t.eqMax} équipes atteint` };
     const nom = equipeData.nom.trim();
     if (!nom) return { error: 'Le nom est obligatoire' };
     if (t.equipes.find((e) => e.nom.toLowerCase() === nom.toLowerCase()))
@@ -163,17 +159,24 @@ export const useTournamentStore = create((set, get) => ({
         const equipes = t.equipes.map((e) =>
           e.id === equipeId ? { ...e, forfait } : e
         );
-        // If forfait: auto-win pending matches for opponents
         let matchs = [...t.matchs];
         if (forfait) {
+          // Auto-win pending matches for opponents; tag with _forfaitWin so cancellation can revert
           matchs = matchs.map((m) => {
             if (m.done || m.bye) return m;
             if (m.A === equipeId)
-              return { ...m, sA: 0, sB: t.scoreCible, done: true };
+              return { ...m, sA: 0, sB: t.scoreCible, done: true, _forfaitWin: equipeId };
             if (m.B === equipeId)
-              return { ...m, sA: t.scoreCible, sB: 0, done: true };
+              return { ...m, sA: t.scoreCible, sB: 0, done: true, _forfaitWin: equipeId };
             return m;
           });
+        } else {
+          // Revert matches that were auto-won due to this team's forfait
+          matchs = matchs.map((m) =>
+            m._forfaitWin === equipeId
+              ? { ...m, sA: null, sB: null, done: false, _forfaitWin: undefined }
+              : m
+          );
         }
         const updated = { ...t, equipes, matchs };
         const recalc = recalculateStandings(updated);

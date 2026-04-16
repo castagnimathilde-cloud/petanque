@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { UNLIMITED_EQ_MAX } from '../utils/storage';
 
 export default function InscriptionPage({ tournoiId }) {
   const [tournoi, setTournoi] = useState(null);
@@ -178,7 +179,7 @@ export default function InscriptionPage({ tournoiId }) {
           </form>
 
           <p className="text-center text-gray-400 text-xs mt-1">
-            🎯 Score cible : {tournoi.scoreCible} pts · max {tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax} équipes
+            🎯 Score cible : {tournoi.scoreCible} pts · max {tournoi.eqMax >= UNLIMITED_EQ_MAX ? '∞' : tournoi.eqMax} équipes
           </p>
         </div>
       </div>

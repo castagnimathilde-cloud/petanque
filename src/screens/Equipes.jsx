@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTournamentStore } from '../store/useTournamentStore';
-import { importFromSheet } from '../utils/matchmaking';
+import { UNLIMITED_EQ_MAX } from '../utils/storage';
 
 function playerFields(joueursParEq) {
   return Array.from({ length: joueursParEq }, (_, i) => i + 1);
@@ -195,7 +195,7 @@ function KioskMode({ tournoi, onClose }) {
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 border border-white/20 flex-1">
             <h3 className="text-white font-bold mb-3">
-              Inscrits ({tournoi.equipes.length}/{tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax})
+              Inscrits ({tournoi.equipes.length}/{tournoi.eqMax >= UNLIMITED_EQ_MAX ? '∞' : tournoi.eqMax})
             </h3>
             <div className="overflow-y-auto max-h-64 flex flex-col gap-2">
               {tournoi.equipes.length === 0 && (
@@ -325,9 +325,12 @@ export default function Equipes() {
 
   useEffect(() => {
     if (!tournoi || tournoi.started) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     fetch(`/api/tournoi/${tournoi.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         nom: tournoi.nom,
         joueursParEq: tournoi.joueursParEq,
@@ -336,6 +339,7 @@ export default function Equipes() {
       }),
     })
       .then(async (r) => {
+        clearTimeout(timeout);
         if (r.ok) {
           setApiStatus('ok');
         } else {
@@ -343,7 +347,11 @@ export default function Equipes() {
           setApiStatus('error:' + (data.error || `HTTP ${r.status}`));
         }
       })
-      .catch((e) => setApiStatus('error:' + e.message));
+      .catch((e) => {
+        clearTimeout(timeout);
+        setApiStatus('error:' + (e.name === 'AbortError' ? 'Délai dépassé (8s)' : e.message));
+      });
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, [tournoi?.id, tournoi?.started]);
 
   useEffect(() => {
@@ -352,13 +360,17 @@ export default function Equipes() {
       try {
         const res = await fetch(`/api/registrations/${tournoi.id}?since=${lastTsRef.current}`);
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setPendingRegs((prev) => {
-            const existingIds = new Set(prev.map((r) => r._id));
-            const newOnes = data.filter((r) => !existingIds.has(r._id));
-            return [...prev, ...newOnes];
-          });
-          lastTsRef.current = Math.max(...data.map((r) => r._ts));
+        if (Array.isArray(data)) {
+          if (data.length > 0) {
+            setPendingRegs((prev) => {
+              const existingIds = new Set(prev.map((r) => r._id));
+              const newOnes = data.filter((r) => !existingIds.has(r._id));
+              return [...prev, ...newOnes];
+            });
+            lastTsRef.current = Math.max(...data.map((r) => r._ts));
+          } else {
+            lastTsRef.current = Date.now();
+          }
         }
       } catch {}
     };
@@ -375,7 +387,7 @@ export default function Equipes() {
     let added = 0, skipped = 0;
     const newEquipes = [...tournoi.equipes];
     const ids = [];
-    const isUnlimited = tournoi.eqMax >= 9999;
+    const isUnlimited = tournoi.eqMax >= UNLIMITED_EQ_MAX;
 
     for (const reg of regsToImport) {
       ids.push(reg._id);
@@ -409,7 +421,7 @@ export default function Equipes() {
   };
 
   const canStart = tournoi.equipes.length >= tournoi.eqMin && !tournoi.started;
-  const eqMaxLabel = tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax;
+  const eqMaxLabel = tournoi.eqMax >= UNLIMITED_EQ_MAX ? '∞' : tournoi.eqMax;
 
   return (
     <>

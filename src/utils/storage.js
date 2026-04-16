@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'petanque_app';
 
+export const UNLIMITED_EQ_MAX = 9999;
+
 export function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

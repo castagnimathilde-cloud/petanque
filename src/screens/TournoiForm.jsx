@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
+import { UNLIMITED_EQ_MAX } from '../utils/storage';
 
 const DEFAULTS = {
   nom: '', cat: 'adultes', date: '', heure: '',
@@ -52,7 +53,7 @@ export default function TournoiForm({ onCancel, onCreated }) {
     if (form.eqMin < 2) { setError('Minimum 2 équipes'); return; }
     if (!form.eqUnlimited && form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
     try {
-      const id = createTournoi({ ...form, eqMax: form.eqUnlimited ? 9999 : form.eqMax });
+      const id = createTournoi({ ...form, eqMax: form.eqUnlimited ? UNLIMITED_EQ_MAX : form.eqMax });
       selectTournoi(id);
       onCreated?.(id);
     } catch (err) {
