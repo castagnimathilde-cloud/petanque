@@ -219,7 +219,7 @@ export default function Equipes() {
   useEffect(() => {
     if (!tournoi || tournoi.started) return;
     fetch(`/api/tournoi/${tournoi.id}`, {
-      method: 'PUT',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nom: tournoi.nom,
