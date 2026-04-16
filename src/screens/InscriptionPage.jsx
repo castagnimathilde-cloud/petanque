@@ -4,7 +4,7 @@ export default function InscriptionPage({ tournoiId }) {
   const [tournoi, setTournoi] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -136,29 +136,30 @@ export default function InscriptionPage({ tournoiId }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Team name */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                🏅 Nom de l'équipe *
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                Nom de l'équipe <span className="text-red-400">*</span>
               </label>
               <input
-                className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white"
                 placeholder="Ex : Les Cigales"
                 value={form.nom}
                 onChange={(e) => setField('nom', e.target.value)}
                 autoComplete="off"
+                autoFocus
               />
             </div>
 
             {/* Players */}
             {[1, 2, 3].slice(0, nbJoueurs).map((n) => (
               <div key={n}>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  👤 Joueur {n} {n === 1 ? '*' : '*'}
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                  Joueur {n} <span className="text-red-400">*</span>
                 </label>
                 <input
-                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:border-blue-500 transition-colors bg-gray-50 focus:bg-white"
                   placeholder="Prénom Nom"
                   value={form[`j${n}`]}
                   onChange={(e) => setField(`j${n}`, e.target.value)}
@@ -167,31 +168,17 @@ export default function InscriptionPage({ tournoiId }) {
               </div>
             ))}
 
-            {/* Emplacement */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                🏕️ Emplacement camping
-              </label>
-              <input
-                className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Ex : n°42 (optionnel)"
-                value={form.empl}
-                onChange={(e) => setField('empl', e.target.value)}
-                autoComplete="off"
-              />
-            </div>
-
             <button
               type="submit"
               disabled={submitting}
-              className="bg-gradient-to-r from-navy-600 to-blue-700 text-white py-4 rounded-2xl text-lg font-black hover:from-navy-700 hover:to-blue-800 transition-all disabled:opacity-60 shadow-lg mt-2"
+              className="bg-gradient-to-r from-navy-600 to-blue-700 text-white py-4 rounded-2xl text-lg font-black hover:from-navy-700 hover:to-blue-800 transition-all disabled:opacity-60 shadow-lg mt-1 active:scale-95"
             >
-              {submitting ? 'Envoi en cours...' : "S'inscrire au tournoi →"}
+              {submitting ? '⏳ Envoi en cours...' : "S'inscrire →"}
             </button>
           </form>
 
-          <p className="text-center text-gray-400 text-xs">
-            Score cible : {tournoi.scoreCible} pts · {tournoi.eqMax} équipes max
+          <p className="text-center text-gray-400 text-xs mt-1">
+            🎯 Score cible : {tournoi.scoreCible} pts · max {tournoi.eqMax} équipes
           </p>
         </div>
       </div>

@@ -13,7 +13,7 @@ function playerFields(joueursParEq) {
 
 function KioskMode({ tournoi, onClose }) {
   const { addEquipe } = useTournamentStore();
-  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const nomRef = useRef();
@@ -34,7 +34,7 @@ function KioskMode({ tournoi, onClose }) {
     const result = addEquipe(tournoi.id, form);
     if (result.error) { setError(result.error); return; }
     setSuccess(`✅ Équipe "${form.nom}" inscrite !`);
-    setForm({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+    setForm({ nom: '', j1: '', j2: '', j3: '' });
     setTimeout(() => { setSuccess(''); nomRef.current?.focus(); }, 3000);
   };
 
@@ -83,7 +83,7 @@ function KioskMode({ tournoi, onClose }) {
               {tournoi.equipes.map((eq, i) => (
                 <div key={eq.id} className="bg-white/20 rounded-xl px-3 py-2">
                   <span className="text-white font-bold text-sm">{i + 1}. {eq.nom}</span>
-                  <div className="text-white/60 text-xs">{eq.j1}{eq.j2 ? ` & ${eq.j2}` : ''}{eq.j3 ? ` & ${eq.j3}` : ''}</div>
+                  <div className="text-white/60 text-xs">{eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}</div>
                 </div>
               ))}
             </div>
@@ -128,15 +128,6 @@ function KioskMode({ tournoi, onClose }) {
                   />
                 </div>
               ))}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">🏕️ Emplacement camping</label>
-                <input
-                  className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-lg font-medium focus:outline-none focus:border-navy-600 transition-colors"
-                  placeholder="n°42 (optionnel)"
-                  value={form.empl}
-                  onChange={(e) => setField('empl', e.target.value)}
-                />
-              </div>
               <button
                 type="submit"
                 className="bg-gradient-to-r from-navy-600 to-blue-700 text-white py-4 rounded-2xl text-xl font-black hover:from-navy-700 hover:to-blue-800 transition-all shadow-lg mt-2"
@@ -156,7 +147,7 @@ function KioskMode({ tournoi, onClose }) {
 function ManualAddForm({ tournoi }) {
   const { addEquipe } = useTournamentStore();
   const nb = tournoi.joueursParEq || 2;
-  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+  const [form, setForm] = useState({ nom: '', j1: '', j2: '', j3: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const setField = (f, v) => setForm((s) => ({ ...s, [f]: v }));
@@ -171,7 +162,7 @@ function ManualAddForm({ tournoi }) {
     const result = addEquipe(tournoi.id, form);
     if (result.error) { setError(result.error); return; }
     setSuccess(`Équipe "${form.nom}" ajoutée`);
-    setForm({ nom: '', j1: '', j2: '', j3: '', empl: '' });
+    setForm({ nom: '', j1: '', j2: '', j3: '' });
     setTimeout(() => setSuccess(''), 2000);
   };
 
@@ -190,10 +181,6 @@ function ManualAddForm({ tournoi }) {
             <input className="input-field" placeholder="Prénom Nom" value={form[`j${n}`]} onChange={(e) => setField(`j${n}`, e.target.value)} />
           </div>
         ))}
-        <div>
-          <label className="label">Emplacement</label>
-          <input className="input-field" placeholder="n°42" value={form.empl} onChange={(e) => setField('empl', e.target.value)} />
-        </div>
       </div>
       <button type="submit" className="btn-primary self-start">+ Ajouter l'équipe</button>
     </form>
@@ -276,7 +263,7 @@ export default function Equipes() {
       if (newEquipes.find((e) => e.nom.toLowerCase() === reg.nom.toLowerCase())) { skipped++; continue; }
       newEquipes.push({
         id: Date.now() + Math.random(),
-        nom: reg.nom, j1: reg.j1, j2: reg.j2 || '', j3: reg.j3 || '', empl: reg.empl || '',
+        nom: reg.nom, j1: reg.j1, j2: reg.j2 || '', j3: reg.j3 || '',
         v: 0, d: 0, pts: 0, ptsCont: 0, matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
       });
       added++;
@@ -409,7 +396,6 @@ export default function Equipes() {
                   <span className="font-bold text-gray-800">{r.nom}</span>
                   <span className="text-gray-400">—</span>
                   <span className="text-gray-600">{r.j1}{r.j2 ? `, ${r.j2}` : ''}{r.j3 ? `, ${r.j3}` : ''}</span>
-                  {r.empl && <span className="text-gray-400 text-xs ml-auto">{r.empl}</span>}
                 </div>
               ))}
             </div>
@@ -478,7 +464,6 @@ export default function Equipes() {
                     {eq.forfait && <span className="ml-2 text-xs text-red-400 font-semibold">Forfait</span>}
                     <div className="text-gray-500 text-xs mt-0.5">
                       👤 {eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}
-                      {eq.empl && <span className="ml-2">🏕️ {eq.empl}</span>}
                     </div>
                   </div>
                   {!tournoi.started && (
