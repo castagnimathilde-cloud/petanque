@@ -3,10 +3,136 @@ import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTournamentStore } from '../store/useTournamentStore';
 import { importFromSheet } from '../utils/matchmaking';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function playerFields(joueursParEq) {
   return Array.from({ length: joueursParEq }, (_, i) => i + 1);
+}
+
+// ── QR Zoom modal ──────────────────────────────────────────────────────────────
+
+function QRZoomModal({ url, tournoi, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-navy-600 font-black text-lg text-center">{tournoi.nom}</p>
+        <div className="bg-white border-4 border-navy-100 rounded-2xl p-4">
+          <QRCode value={url} size={240} level="H" />
+        </div>
+        <p className="text-gray-500 text-sm text-center">Scannez avec l'appareil photo</p>
+        <button
+          className="btn-secondary w-full text-center"
+          onClick={onClose}
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Share sheet ────────────────────────────────────────────────────────────────
+
+function ShareSheet({ url, tournoi, onClose }) {
+  const [copied, setCopied] = useState(false);
+  const msg = `Inscris ton équipe au tournoi "${tournoi.nom}" 🎯\n${url}`;
+
+  const copy = async () => {
+    await navigator.clipboard?.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const actions = [
+    {
+      label: copied ? '✓ Lien copié !' : 'Copier le lien',
+      icon: copied ? '✓' : '📋',
+      color: copied ? 'bg-green-50 border-green-300 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100',
+      onClick: copy,
+    },
+    {
+      label: 'WhatsApp',
+      icon: '💬',
+      color: 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100',
+      href: `https://wa.me/?text=${encodeURIComponent(msg)}`,
+    },
+    {
+      label: 'E-mail',
+      icon: '✉️',
+      color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100',
+      href: `mailto:?subject=${encodeURIComponent(`Inscription – ${tournoi.nom}`)}&body=${encodeURIComponent(msg)}`,
+    },
+    {
+      label: 'SMS',
+      icon: '📱',
+      color: 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100',
+      href: `sms:?body=${encodeURIComponent(msg)}`,
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-2">
+          <h3 className="text-lg font-black text-gray-800">Envoyer le lien d'inscription</h3>
+          <p className="text-gray-400 text-sm mt-0.5">{tournoi.nom}</p>
+        </div>
+        <div className="p-4 flex flex-col gap-2">
+          {actions.map((a) =>
+            a.href ? (
+              <a
+                key={a.label}
+                href={a.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl border font-bold text-sm transition-colors ${a.color}`}
+                onClick={onClose}
+              >
+                <span className="text-xl w-7 text-center">{a.icon}</span>
+                {a.label}
+              </a>
+            ) : (
+              <button
+                key={a.label}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl border font-bold text-sm transition-colors ${a.color}`}
+                onClick={a.onClick}
+              >
+                <span className="text-xl w-7 text-center">{a.icon}</span>
+                {a.label}
+              </button>
+            )
+          )}
+        </div>
+        <div className="px-4 pb-4">
+          <button className="w-full py-3 rounded-2xl text-gray-400 text-sm font-bold hover:bg-gray-50 transition-colors" onClick={onClose}>
+            Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Kiosk / Projection screen ─────────────────────────────────────────────────
@@ -42,7 +168,6 @@ function KioskMode({ tournoi, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-navy-800 to-blue-900 flex flex-col overflow-auto">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4 bg-black/30 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <span className="text-3xl">🎯</span>
@@ -60,7 +185,6 @@ function KioskMode({ tournoi, onClose }) {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row gap-6 p-6 max-w-6xl mx-auto w-full">
-        {/* QR Code side */}
         <div className="lg:w-72 flex flex-col gap-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 text-center border border-white/20">
             <p className="text-white font-bold mb-4 text-lg">📱 Inscription sur votre téléphone</p>
@@ -68,10 +192,7 @@ function KioskMode({ tournoi, onClose }) {
               <QRCode value={qrUrl} size={180} level="M" />
             </div>
             <p className="text-blue-200 text-xs mt-3">Scannez avec votre appareil photo</p>
-            <p className="text-white/40 text-xs mt-1 break-all">{qrUrl}</p>
           </div>
-
-          {/* Teams list */}
           <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 border border-white/20 flex-1">
             <h3 className="text-white font-bold mb-3">
               Inscrits ({tournoi.equipes.length}/{tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax})
@@ -90,11 +211,9 @@ function KioskMode({ tournoi, onClose }) {
           </div>
         </div>
 
-        {/* Registration form */}
         <div className="flex-1">
           <div className="bg-white rounded-3xl p-6 shadow-2xl">
             <h2 className="text-2xl font-black text-navy-600 mb-6">Inscrire mon équipe ici</h2>
-
             {error && (
               <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-2xl mb-4 font-medium">
                 ⚠️ {error}
@@ -105,7 +224,6 @@ function KioskMode({ tournoi, onClose }) {
                 {success}
               </div>
             )}
-
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">🏅 Nom de l'équipe *</label>
@@ -198,12 +316,13 @@ export default function Equipes() {
   const [selectedRegs, setSelectedRegs] = useState(new Set());
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState('');
-  const [apiStatus, setApiStatus] = useState('unknown'); // 'ok' | 'error:<msg>' | 'unknown'
+  const [apiStatus, setApiStatus] = useState('unknown');
+  const [qrZoomed, setQrZoomed] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const lastTsRef = useRef(0);
 
   const qrUrl = tournoi ? `${window.location.origin}/?register=${tournoi.id}` : '';
 
-  // Push tournoi info to server so InscriptionPage can fetch it
   useEffect(() => {
     if (!tournoi || tournoi.started) return;
     fetch(`/api/tournoi/${tournoi.id}`, {
@@ -227,7 +346,6 @@ export default function Equipes() {
       .catch((e) => setApiStatus('error:' + e.message));
   }, [tournoi?.id, tournoi?.started]);
 
-  // Poll for new registrations from participants' phones
   useEffect(() => {
     if (!tournoi || tournoi.started) return;
     const poll = async () => {
@@ -290,100 +408,103 @@ export default function Equipes() {
     setScreen('tour');
   };
 
-  const canStart = tournoi.equipes.length >= 2 && !tournoi.started;
+  const canStart = tournoi.equipes.length >= tournoi.eqMin && !tournoi.started;
+  const eqMaxLabel = tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax;
 
   return (
     <>
       {kioskOpen && <KioskMode tournoi={tournoi} onClose={closeKiosk} />}
+      {qrZoomed && <QRZoomModal url={qrUrl} tournoi={tournoi} onClose={() => setQrZoomed(false)} />}
+      {shareOpen && <ShareSheet url={qrUrl} tournoi={tournoi} onClose={() => setShareOpen(false)} />}
 
       <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-black text-navy-600">Inscription des équipes</h2>
             <p className="text-gray-500 text-sm">{tournoi.nom}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-bold px-3 py-1 rounded-full ${tournoi.equipes.length >= tournoi.eqMin ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-              {tournoi.equipes.length}/{tournoi.eqMax >= 9999 ? '∞' : tournoi.eqMax} équipes
-            </span>
-          </div>
+          <span className={`text-sm font-bold px-3 py-1.5 rounded-full ${tournoi.equipes.length >= tournoi.eqMin ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+            {tournoi.equipes.length} / {eqMaxLabel}
+          </span>
         </div>
 
-        {/* QR Code card — hero section */}
+        {/* QR Code card */}
         <div className="card bg-gradient-to-br from-navy-600 to-blue-700 border-0 text-white">
-          <div className="flex flex-col sm:flex-row gap-6 items-center">
-            {/* QR */}
-            <div className="flex-shrink-0 text-center">
-              <div className="bg-white rounded-2xl p-3 inline-block shadow-xl">
-                <QRCode value={qrUrl} size={150} level="M" />
+          <div className="flex flex-col sm:flex-row gap-5 items-center">
+            {/* QR — clickable zoom */}
+            <button
+              className="flex-shrink-0 group relative focus:outline-none"
+              onClick={() => setQrZoomed(true)}
+              title="Agrandir le QR code"
+            >
+              <div className="bg-white rounded-2xl p-3 shadow-xl transition-transform group-hover:scale-105 group-active:scale-95">
+                <QRCode value={qrUrl} size={130} level="M" />
               </div>
-              <p className="text-blue-200 text-xs mt-2">Scannez pour s'inscrire</p>
-            </div>
-            {/* Info */}
-            <div className="flex-1 flex flex-col gap-3">
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-lg">🔍 Agrandir</span>
+              </div>
+            </button>
+
+            {/* Info + actions */}
+            <div className="flex-1 flex flex-col gap-3 w-full">
               <div>
-                <h3 className="font-black text-lg">📱 Inscription par QR Code</h3>
+                <h3 className="font-black text-lg leading-tight">📱 Inscription par QR Code</h3>
                 <p className="text-blue-200 text-sm mt-1">
-                  Projetez cet écran ou ouvrez la borne. Les participants scannent le QR code et s'inscrivent directement depuis leur téléphone.
+                  Les participants scannent et s'inscrivent depuis leur téléphone.
                 </p>
-              </div>
-              <div className="bg-white/10 rounded-xl px-3 py-2 text-xs text-blue-200 font-mono break-all">
-                {qrUrl}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
-                  className="bg-white text-navy-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-blue-50 transition-colors"
+                  className="flex items-center gap-2 bg-white text-navy-600 font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-blue-50 transition-colors shadow-sm"
                   onClick={openKiosk}
                 >
-                  📟 Ouvrir la borne plein écran
+                  📟 Borne plein écran
                 </button>
                 <button
-                  className="bg-white/20 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-white/30 transition-colors border border-white/30"
-                  onClick={() => navigator.clipboard?.writeText(qrUrl)}
+                  className="flex items-center gap-2 bg-white/20 text-white font-bold px-4 py-2.5 rounded-xl text-sm hover:bg-white/30 transition-colors border border-white/30"
+                  onClick={() => setShareOpen(true)}
                 >
-                  Copier le lien
+                  ↗ Envoyer le lien
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* API connection status */}
+        {/* API error */}
         {apiStatus.startsWith('error') && (
           <div className="card border-2 border-amber-300 bg-amber-50">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
+              <span className="text-2xl shrink-0">⚠️</span>
               <div>
                 <h3 className="font-bold text-amber-800">QR code non fonctionnel en production</h3>
                 <p className="text-amber-700 text-sm mt-1">
-                  L'API serveur ne répond pas. Les participants ne pourront pas s'inscrire via le QR code sur Vercel.
+                  L'API serveur ne répond pas — les participants ne peuvent pas s'inscrire via QR code sur Vercel.
                 </p>
                 {apiStatus.length > 6 && (
                   <p className="text-amber-800 text-xs mt-2 font-mono bg-amber-100 rounded-lg px-2 py-1">
-                    Erreur : {apiStatus.replace('error:', '')}
+                    {apiStatus.replace('error:', '')}
                   </p>
                 )}
-                <p className="text-amber-600 text-xs mt-2 font-mono">
-                  → Vérifiez que REDIS_URL est bien configuré dans Vercel → Settings → Environment Variables (avec une valeur non vide).
-                </p>
-                <p className="text-amber-600 text-xs mt-1">
-                  En attendant, utilisez la borne locale (bouton ci-dessus) ou l'ajout manuel.
+                <p className="text-amber-600 text-xs mt-2">
+                  Vérifiez que <code className="font-mono bg-amber-100 px-1 rounded">REDIS_URL</code> est configuré dans Vercel → Settings → Environment Variables.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Pending registrations from phones */}
+        {/* Pending registrations */}
         {pendingRegs.length > 0 && (
-          <div className="card border-2 border-blue-300 bg-blue-50">
+          <div className="card border-2 border-blue-200 bg-blue-50">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <div>
                 <h3 className="font-bold text-blue-800">
                   📲 {pendingRegs.length} inscription{pendingRegs.length > 1 ? 's' : ''} en attente
                 </h3>
-                <p className="text-blue-600 text-xs mt-0.5">Reçues depuis les téléphones des participants</p>
+                <p className="text-blue-500 text-xs mt-0.5">Reçues depuis les téléphones</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {selectedRegs.size > 0 && (
@@ -404,13 +525,13 @@ export default function Equipes() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {pendingRegs.map((r) => {
                 const checked = selectedRegs.has(r._id);
                 return (
                   <label
                     key={r._id}
-                    className={`bg-white rounded-xl px-3 py-2 text-sm flex items-center gap-3 cursor-pointer hover:bg-blue-50 transition-colors ${checked ? 'ring-2 ring-blue-400' : ''}`}
+                    className={`bg-white rounded-xl px-3 py-2.5 text-sm flex items-center gap-3 cursor-pointer transition-colors ${checked ? 'ring-2 ring-blue-400 bg-blue-50' : 'hover:bg-white/80'}`}
                   >
                     <input
                       type="checkbox"
@@ -422,17 +543,17 @@ export default function Equipes() {
                       })}
                       className="w-4 h-4 accent-blue-600 shrink-0"
                     />
-                    <span className="font-bold text-gray-800">{r.nom}</span>
-                    <span className="text-gray-400">—</span>
-                    <span className="text-gray-600">{r.j1}{r.j2 ? `, ${r.j2}` : ''}{r.j3 ? `, ${r.j3}` : ''}</span>
+                    <span className="font-bold text-gray-800 flex-1">{r.nom}</span>
+                    <span className="text-gray-400 text-xs">{r.j1}{r.j2 ? ` · ${r.j2}` : ''}{r.j3 ? ` · ${r.j3}` : ''}</span>
                   </label>
                 );
               })}
             </div>
           </div>
         )}
+
         {importMsg && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-xl text-sm font-medium">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2.5 rounded-xl text-sm font-medium">
             {importMsg}
           </div>
         )}
@@ -441,8 +562,8 @@ export default function Equipes() {
         {!tournoi.started && (
           <div className="card">
             <details>
-              <summary className="font-bold text-navy-600 cursor-pointer select-none flex items-center gap-2">
-                <span>➕ Ajouter une équipe manuellement</span>
+              <summary className="font-bold text-navy-600 cursor-pointer select-none">
+                ➕ Ajouter une équipe manuellement
               </summary>
               <ManualAddForm tournoi={tournoi} />
             </details>
@@ -452,17 +573,17 @@ export default function Equipes() {
         {/* Teams list */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-navy-600">
+            <h3 className="font-bold text-navy-600 flex items-center gap-2">
               Équipes inscrites
-              <span className="ml-2 bg-navy-50 text-navy-600 text-xs font-black px-2 py-0.5 rounded-full border border-navy-100">
+              <span className="bg-navy-50 text-navy-600 text-xs font-black px-2 py-0.5 rounded-full border border-navy-100">
                 {tournoi.equipes.length}
               </span>
             </h3>
             {!tournoi.started && (
               <div className="flex items-center gap-2 flex-wrap justify-end">
-                {startError && <span className="text-red-600 text-sm">{startError}</span>}
+                {startError && <span className="text-red-600 text-sm font-medium">{startError}</span>}
                 <button
-                  className="btn-primary disabled:opacity-40"
+                  className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
                   onClick={handleStart}
                   disabled={!canStart}
                   title={!canStart ? `Minimum ${tournoi.eqMin} équipes requis` : ''}
@@ -474,26 +595,26 @@ export default function Equipes() {
           </div>
 
           {tournoi.equipes.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-2">👥</div>
-              <p className="text-gray-400 text-sm">Aucune équipe inscrite</p>
-              <p className="text-gray-300 text-xs mt-1">Utilisez le QR code ou ajoutez manuellement</p>
+            <div className="text-center py-10">
+              <div className="text-5xl mb-3">👥</div>
+              <p className="text-gray-500 font-medium">Aucune équipe inscrite</p>
+              <p className="text-gray-400 text-sm mt-1">Partagez le QR code ou ajoutez manuellement</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
               {tournoi.equipes.map((eq, i) => (
                 <div
                   key={eq.id}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${eq.forfait ? 'bg-red-50 opacity-60' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors ${eq.forfait ? 'bg-red-50 opacity-60' : 'bg-gray-50 hover:bg-gray-100'}`}
                 >
-                  <span className="text-gray-400 font-bold text-sm w-6 text-center">{i + 1}</span>
+                  <span className="text-gray-300 font-bold text-sm w-6 text-center shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <span className={`font-bold ${eq.forfait ? 'line-through text-red-400' : 'text-gray-800'}`}>
                       {eq.nom}
                     </span>
                     {eq.forfait && <span className="ml-2 text-xs text-red-400 font-semibold">Forfait</span>}
-                    <div className="text-gray-500 text-xs mt-0.5">
-                      👤 {eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}
+                    <div className="text-gray-400 text-xs mt-0.5">
+                      {eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}
                     </div>
                   </div>
                   {!tournoi.started && (
@@ -510,8 +631,9 @@ export default function Equipes() {
           )}
 
           {!tournoi.started && tournoi.equipes.length < tournoi.eqMin && (
-            <p className="text-center text-orange-500 text-xs mt-3 font-medium">
-              ⚠️ Minimum {tournoi.eqMin} équipes pour lancer ({tournoi.eqMin - tournoi.equipes.length} manquante{tournoi.eqMin - tournoi.equipes.length > 1 ? 's' : ''})
+            <p className="text-center text-orange-500 text-xs mt-4 font-medium">
+              ⚠️ Minimum {tournoi.eqMin} équipes pour lancer
+              {' '}({tournoi.eqMin - tournoi.equipes.length} manquante{tournoi.eqMin - tournoi.equipes.length > 1 ? 's' : ''})
             </p>
           )}
         </div>
