@@ -109,7 +109,7 @@ export const useTournamentStore = create((set, get) => ({
     const t = get().getTournoi(tournoiId);
     if (!t) return { error: 'Tournoi introuvable' };
     if (t.started) return { error: 'Le tournoi est déjà démarré' };
-    if (t.equipes.length >= t.eqMax) return { error: `Maximum ${t.eqMax} équipes atteint` };
+    if (t.eqMax < 9999 && t.equipes.length >= t.eqMax) return { error: `Maximum ${t.eqMax} équipes atteint` };
     const nom = equipeData.nom.trim();
     if (!nom) return { error: 'Le nom est obligatoire' };
     if (t.equipes.find((e) => e.nom.toLowerCase() === nom.toLowerCase()))

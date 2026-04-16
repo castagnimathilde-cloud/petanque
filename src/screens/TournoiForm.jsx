@@ -3,15 +3,36 @@ import { useTournamentStore } from '../store/useTournamentStore';
 
 const DEFAULTS = {
   nom: '', cat: 'adultes', date: '', heure: '',
-  eqMin: 4, eqMax: 16, joueursParEq: 2,
+  eqMin: 4, eqMax: 16, eqUnlimited: false, joueursParEq: 2,
   scoreCible: 13, matchNulAutorise: false,
   nbTours: 3, nbTerrains: 4,
 };
 
-function Field({ label, children }) {
+function Toggle({ label, hint, checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex items-center gap-3 cursor-pointer select-none group w-full text-left"
+    >
+      <div className={`relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0 ${checked ? 'bg-navy-600' : 'bg-gray-200 group-hover:bg-gray-300'}`}>
+        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
+      </div>
+      <div>
+        <span className="text-sm font-bold text-gray-700">{label}</span>
+        {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
+      </div>
+    </button>
+  );
+}
+
+function Field({ label, hint, children }) {
   return (
     <div>
       <label className="label">{label}</label>
+      {hint && <p className="text-xs text-gray-400 mb-1">{hint}</p>}
       {children}
     </div>
   );
@@ -29,9 +50,9 @@ export default function TournoiForm({ onCancel, onCreated }) {
     setError('');
     if (!form.nom.trim()) { setError('Le nom du tournoi est obligatoire'); return; }
     if (form.eqMin < 2) { setError('Minimum 2 équipes'); return; }
-    if (form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
+    if (!form.eqUnlimited && form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
     try {
-      const id = createTournoi(form);
+      const id = createTournoi({ ...form, eqMax: form.eqUnlimited ? 9999 : form.eqMax });
       selectTournoi(id);
       onCreated?.(id);
     } catch (err) {
@@ -40,7 +61,7 @@ export default function TournoiForm({ onCancel, onCreated }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
+    <div className="max-w-2xl mx-auto p-4 pb-10">
       <div className="flex items-center gap-3 mb-6">
         <button className="btn-ghost" onClick={onCancel}>← Retour</button>
         <div>
@@ -67,6 +88,7 @@ export default function TournoiForm({ onCancel, onCreated }) {
                   placeholder="Ex : Pétanque du camping"
                   value={form.nom}
                   onChange={(e) => set('nom', e.target.value)}
+                  autoFocus
                 />
               </Field>
             </div>
@@ -85,16 +107,33 @@ export default function TournoiForm({ onCancel, onCreated }) {
           </div>
         </div>
 
-        {/* Paramètres sportifs */}
+        {/* Équipes */}
         <div className="card">
-          <h2 className="section-title">⚙️ Paramètres sportifs</h2>
+          <h2 className="section-title">👥 Équipes</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Équipes minimum">
-              <input type="number" className="input-field" min={2} value={form.eqMin} onChange={(e) => set('eqMin', Number(e.target.value))} />
+            <Field label="Minimum" hint="Requis pour lancer le tournoi">
+              <input
+                type="number" className="input-field" min={2}
+                value={form.eqMin}
+                onChange={(e) => set('eqMin', Number(e.target.value))}
+              />
             </Field>
-            <Field label="Équipes maximum">
-              <input type="number" className="input-field" min={2} value={form.eqMax} onChange={(e) => set('eqMax', Number(e.target.value))} />
+            <Field label="Maximum">
+              <input
+                type="number" className="input-field" min={2}
+                value={form.eqMax}
+                disabled={form.eqUnlimited}
+                onChange={(e) => set('eqMax', Number(e.target.value))}
+              />
             </Field>
+            <div className="sm:col-span-2 bg-gray-50 rounded-2xl px-4 py-3">
+              <Toggle
+                label="Inscriptions illimitées"
+                hint="Aucun plafond sur le nombre d'équipes"
+                checked={form.eqUnlimited}
+                onChange={(v) => set('eqUnlimited', v)}
+              />
+            </div>
             <Field label="Format">
               <select className="input-field" value={form.joueursParEq} onChange={(e) => set('joueursParEq', Number(e.target.value))}>
                 <option value={1}>1 joueur — Tête-à-tête</option>
@@ -102,6 +141,13 @@ export default function TournoiForm({ onCancel, onCreated }) {
                 <option value={3}>3 joueurs — Triplette</option>
               </select>
             </Field>
+          </div>
+        </div>
+
+        {/* Paramètres sportifs */}
+        <div className="card">
+          <h2 className="section-title">⚙️ Paramètres sportifs</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Score cible">
               <select className="input-field" value={form.scoreCible} onChange={(e) => set('scoreCible', Number(e.target.value))}>
                 <option value={7}>7 points</option>
@@ -116,24 +162,25 @@ export default function TournoiForm({ onCancel, onCreated }) {
                 <option value={5}>5 tours</option>
               </select>
             </Field>
-            <Field label="Terrains disponibles">
+            <Field label="Terrains disponibles" hint="Utilisé pour l'affichage des terrains">
               <input type="number" className="input-field" min={1} value={form.nbTerrains} onChange={(e) => set('nbTerrains', Number(e.target.value))} />
             </Field>
-            <div className="sm:col-span-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className={`w-12 h-6 rounded-full transition-colors ${form.matchNulAutorise ? 'bg-navy-600' : 'bg-gray-200'}`}>
-                  <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform m-0.5 ${form.matchNulAutorise ? 'translate-x-6' : 'translate-x-0'}`} />
-                </div>
-                <span className="text-sm font-bold text-gray-700">Match nul autorisé</span>
-              </label>
-              <input type="checkbox" className="sr-only" checked={form.matchNulAutorise} onChange={(e) => set('matchNulAutorise', e.target.checked)} />
+            <div className="flex items-end">
+              <div className="bg-gray-50 rounded-2xl px-4 py-3 w-full">
+                <Toggle
+                  label="Match nul autorisé"
+                  hint="Un match peut se terminer à égalité"
+                  checked={form.matchNulAutorise}
+                  onChange={(v) => set('matchNulAutorise', v)}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 justify-end pt-2">
           <button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button>
-          <button type="submit" className="btn-primary px-6">Créer le tournoi →</button>
+          <button type="submit" className="btn-primary px-8 text-base">Créer le tournoi →</button>
         </div>
       </form>
     </div>
