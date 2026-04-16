@@ -210,8 +210,6 @@ export const useTournamentStore = create((set, get) => ({
     const t = get().getTournoi(tournoiId);
     if (!t) return { error: 'Tournoi introuvable' };
     if (t.equipes.length < 2) return { error: 'Il faut au moins 2 équipes' };
-    const activeTeams = t.equipes.filter((e) => !e.forfait);
-    if (activeTeams.length % 2 !== 0) return { error: 'Nombre impair d\'équipes — ajoutez ou retirez une équipe pour que tout le monde puisse jouer' };
 
     const newMatches = generateRound(t, 1);
 
@@ -258,8 +256,6 @@ export const useTournamentStore = create((set, get) => ({
 
     // Generate next round using current standings (adversaires, byeRecu already recalculated)
     const updatedT = get().getTournoi(tournoiId);
-    const activeForNext = updatedT.equipes.filter((e) => !e.forfait);
-    if (activeForNext.length % 2 !== 0) return { error: 'Nombre impair d\'équipes actives — marquez un forfait ou ajoutez une équipe' };
     const newMatches = generateRound(updatedT, nextTourNum);
 
     set((s) => ({

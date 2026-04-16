@@ -81,8 +81,23 @@ export function generateRound(tournoi, tourNumber) {
     teamsToUse = sortByRanking(activeTeams);
   }
 
-  const pairs = pairTeams(teamsToUse);
+  // Odd number of teams — give a bye to one team
+  if (teamsToUse.length % 2 !== 0) {
+    const byeTeam = pickByeTeam(teamsToUse);
+    teamsToUse = teamsToUse.filter((t) => t.id !== byeTeam.id);
+    newMatches.push({
+      tour: tourNumber,
+      A: byeTeam.id,
+      B: null,
+      sA: scoreCible,
+      sB: 0,
+      done: true,
+      terrain: null,
+      bye: true,
+    });
+  }
 
+  const pairs = pairTeams(teamsToUse);
   pairs.forEach(({ A, B }, idx) => {
     const terrain = idx < nbTerrains ? idx + 1 : null;
     newMatches.push({
