@@ -1,4 +1,6 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,11 +13,11 @@ export default async function handler(req, res) {
 
   if (!nom || !j1) return res.status(400).json({ error: 'Nom et Joueur 1 obligatoires' });
 
-  const tournoi = await kv.get(`tournoi:${tournoiId}`);
+  const tournoi = await redis.get(`tournoi:${tournoiId}`);
   if (!tournoi) return res.status(404).json({ error: 'Tournoi introuvable' });
 
   const key = `regs:${tournoiId}`;
-  const existing = (await kv.get(key)) || [];
+  const existing = (await redis.get(key)) || [];
 
   const duplicate = existing.find(
     (r) => r.nom.toLowerCase() === nom.trim().toLowerCase()
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
   };
 
   existing.push(reg);
-  await kv.set(key, existing, { ex: 86400 }); // 24h TTL
+  await redis.set(key, existing, { ex: 86400 });
 
   return res.json({ ok: true });
 }

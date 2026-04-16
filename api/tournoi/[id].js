@@ -1,4 +1,6 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,13 +11,13 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'GET') {
-    const data = await kv.get(`tournoi:${id}`);
+    const data = await redis.get(`tournoi:${id}`);
     if (!data) return res.status(404).json({ error: 'Tournoi introuvable' });
     return res.json(data);
   }
 
   if (req.method === 'PUT') {
-    await kv.set(`tournoi:${id}`, req.body, { ex: 86400 * 7 }); // 7 jours TTL
+    await redis.set(`tournoi:${id}`, req.body, { ex: 86400 * 7 });
     return res.json({ ok: true });
   }
 

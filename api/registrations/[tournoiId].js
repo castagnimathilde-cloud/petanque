@@ -1,4 +1,6 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,19 +11,17 @@ export default async function handler(req, res) {
   const { tournoiId } = req.query;
   const key = `regs:${tournoiId}`;
 
-  // GET — organizer polls for new registrations
   if (req.method === 'GET') {
     const since = Number(req.query.since || 0);
-    const regs = (await kv.get(key)) || [];
+    const regs = (await redis.get(key)) || [];
     return res.json(regs.filter((r) => r._ts > since));
   }
 
-  // DELETE — organizer claims (removes) registrations after import
   if (req.method === 'DELETE') {
     const { ids } = req.body;
-    const regs = (await kv.get(key)) || [];
+    const regs = (await redis.get(key)) || [];
     const remaining = regs.filter((r) => !ids.includes(r._id));
-    await kv.set(key, remaining, { ex: 86400 });
+    await redis.set(key, remaining, { ex: 86400 });
     return res.json({ ok: true });
   }
 
