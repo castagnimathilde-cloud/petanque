@@ -1,16 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
 
-function RoundDots({ nbTours, tourActuel }) {
+function RoundDots({ nbTours, tourActuel, viewTour, onSelectTour }) {
+  const active = viewTour ?? tourActuel;
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       {Array.from({ length: nbTours }, (_, i) => {
         const n = i + 1;
-        let cls = 'w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ';
-        if (n < tourActuel)  cls += 'bg-emerald-500 text-white shadow-sm';
-        else if (n === tourActuel) cls += 'bg-blue-600 text-white shadow-md ring-4 ring-blue-200 scale-110';
-        else cls += 'bg-gray-200 text-gray-400';
-        return <div key={n} className={cls}>{n < tourActuel ? '✓' : n}</div>;
+        const done    = n < tourActuel;
+        const current = n === tourActuel;
+        const viewing = n === active;
+        const clickable = n <= tourActuel;
+
+        let cls = 'w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all select-none ';
+        if (viewing && done)         cls += 'bg-emerald-600 text-white shadow-md ring-4 ring-emerald-200 scale-110 cursor-pointer';
+        else if (viewing && current) cls += 'bg-blue-600 text-white shadow-md ring-4 ring-blue-200 scale-110 cursor-pointer';
+        else if (done)               cls += 'bg-emerald-500 text-white shadow-sm cursor-pointer hover:scale-105 hover:ring-2 hover:ring-emerald-200';
+        else if (current)            cls += 'bg-blue-600 text-white shadow-md ring-4 ring-blue-200 scale-110 cursor-pointer';
+        else                         cls += 'bg-gray-200 text-gray-400';
+
+        return (
+          <div
+            key={n}
+            className={cls}
+            onClick={() => clickable && onSelectTour(n)}
+            title={done ? `Voir le tour ${n}` : current ? 'Tour actuel' : ''}
+          >
+            {done && !viewing ? '✓' : n}
+          </div>
+        );
       })}
     </div>
   );
@@ -269,18 +287,23 @@ export default function TourEnCours() {
   const tournoi = getActiveTournoi();
   const [nextError, setNextError] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [viewTour, setViewTour] = useState(null); // null = follow tourActuel
 
   if (!tournoi) return null;
 
-  const currentMatches = tournoi.matchs.filter((m) => m.tour === tournoi.tourActuel);
+  const displayTour  = viewTour ?? tournoi.tourActuel;
+  const isHistoryView = displayTour < tournoi.tourActuel;
+
+  const currentMatches = tournoi.matchs.filter((m) => m.tour === displayTour);
   const realMatches    = currentMatches.filter((m) => !m.bye);
   const byeMatches     = currentMatches.filter((m) => m.bye);
   const doneCount      = currentMatches.filter((m) => m.done).length;
-  const allDone        = currentMatches.length > 0 && doneCount === currentMatches.length;
+  const allDone        = !isHistoryView && currentMatches.length > 0 && doneCount === currentMatches.length;
   const isLastTour     = tournoi.tourActuel >= tournoi.nbTours;
   const progress       = currentMatches.length ? Math.round((doneCount / currentMatches.length) * 100) : 0;
 
   const handleNext = () => {
+    setViewTour(null);
     setNextError('');
     const result = nextTour(tournoi.id);
     if (result?.error) { setNextError(result.error); return; }
@@ -289,26 +312,52 @@ export default function TourEnCours() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+
+      {/* History mode banner */}
+      {isHistoryView && (
+        <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 animate-slide-up">
+          <div className="flex items-center gap-2">
+            <span className="text-amber-500 text-lg">👁</span>
+            <span className="font-bold text-amber-800 text-sm">Tour {displayTour} — lecture seule</span>
+          </div>
+          <button
+            className="text-xs font-black text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors active:scale-95"
+            onClick={() => setViewTour(null)}
+          >
+            ← Tour {tournoi.tourActuel} (actuel)
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="card bg-gradient-to-r from-navy-600 to-blue-700 border-0 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
-            <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-0.5">Tour en cours</p>
+            <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-0.5">
+              {isHistoryView ? 'Tour terminé' : 'Tour en cours'}
+            </p>
             <h2 className="text-xl font-black">{tournoi.nom}</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <RoundDots nbTours={tournoi.nbTours} tourActuel={tournoi.tourActuel} />
-              <span className="text-blue-200 text-sm">Tour {tournoi.tourActuel}/{tournoi.nbTours}</span>
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              <RoundDots
+                nbTours={tournoi.nbTours}
+                tourActuel={tournoi.tourActuel}
+                viewTour={viewTour}
+                onSelectTour={setViewTour}
+              />
+              <span className="text-blue-200 text-sm">Tour {displayTour}/{tournoi.nbTours}</span>
             </div>
           </div>
           <div className="text-right shrink-0">
             <div className="text-3xl font-black">{doneCount}<span className="text-blue-300 text-xl">/{currentMatches.length}</span></div>
             <div className="text-blue-200 text-xs">matchs validés</div>
-            <div className="mt-2 flex items-center gap-2 justify-end">
-              <div className="bg-white/20 rounded-full h-2 w-28">
-                <div className="bg-white rounded-full h-2 transition-all duration-500" style={{ width: `${progress}%` }} />
+            {!isHistoryView && (
+              <div className="mt-2 flex items-center gap-2 justify-end">
+                <div className="bg-white/20 rounded-full h-2 w-28">
+                  <div className="bg-white rounded-full h-2 transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+                <span className="text-white/70 text-xs font-bold tabular-nums w-8 text-right">{progress}%</span>
               </div>
-              <span className="text-white/70 text-xs font-bold tabular-nums w-8 text-right">{progress}%</span>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -337,7 +386,7 @@ export default function TourEnCours() {
         </div>
       )}
 
-      {/* All done celebration */}
+      {/* All done celebration (current tour only) */}
       {allDone && (
         <div className={`card text-center py-5 animate-pop-in ${
           isLastTour
@@ -353,8 +402,8 @@ export default function TourEnCours() {
         </div>
       )}
 
-      {/* Back to registration (tour 1 only) */}
-      {tournoi.tourActuel === 1 && (
+      {/* Back to registration (tour 1 only, current view only) */}
+      {!isHistoryView && tournoi.tourActuel === 1 && (
         confirmReset ? (
           <div className="card border-2 border-orange-200 bg-orange-50 animate-slide-up">
             <p className="text-orange-800 font-bold text-sm mb-3">
@@ -382,24 +431,26 @@ export default function TourEnCours() {
         )
       )}
 
-      {/* Bottom actions */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <button className="btn-secondary" onClick={() => setScreen('classement')}>
-          📊 Classement
-        </button>
-        <div className="flex items-center gap-3">
-          {nextError && <span className="text-red-500 text-sm font-medium animate-slide-up">⚠️ {nextError}</span>}
-          {allDone ? (
-            <button className="btn-primary px-6 text-base active:scale-95" onClick={handleNext}>
-              {isLastTour ? '🏆 Résultats finaux' : 'Tour suivant →'}
-            </button>
-          ) : (
-            <span className="bg-amber-100 text-amber-700 text-sm font-bold px-4 py-2 rounded-xl">
-              ⏳ {currentMatches.length - doneCount} match{currentMatches.length - doneCount > 1 ? 's' : ''} restant{currentMatches.length - doneCount > 1 ? 's' : ''}
-            </span>
-          )}
+      {/* Bottom actions (current view only) */}
+      {!isHistoryView && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <button className="btn-secondary" onClick={() => setScreen('classement')}>
+            📊 Classement
+          </button>
+          <div className="flex items-center gap-3">
+            {nextError && <span className="text-red-500 text-sm font-medium animate-slide-up">⚠️ {nextError}</span>}
+            {allDone ? (
+              <button className="btn-primary px-6 text-base active:scale-95" onClick={handleNext}>
+                {isLastTour ? '🏆 Résultats finaux' : 'Tour suivant →'}
+              </button>
+            ) : (
+              <span className="bg-amber-100 text-amber-700 text-sm font-bold px-4 py-2 rounded-xl">
+                ⏳ {currentMatches.length - doneCount} match{currentMatches.length - doneCount > 1 ? 's' : ''} restant{currentMatches.length - doneCount > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

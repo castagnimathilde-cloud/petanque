@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTournamentStore } from '../store/useTournamentStore';
-import { UNLIMITED_EQ_MAX } from '../utils/storage';
+import { UNLIMITED_EQ_MAX, genId } from '../utils/storage';
 
 function playerFields(joueursParEq) {
   return Array.from({ length: joueursParEq }, (_, i) => i + 1);
@@ -396,7 +396,7 @@ export default function Equipes() {
       if (!isUnlimited && newEquipes.length >= tournoi.eqMax) { skipped++; continue; }
       if (newEquipes.find((e) => e.nom.toLowerCase() === reg.nom.toLowerCase())) { skipped++; continue; }
       newEquipes.push({
-        id: Date.now() + Math.random(),
+        id: genId(),
         nom: reg.nom, j1: reg.j1, j2: reg.j2 || '', j3: reg.j3 || '',
         v: 0, d: 0, pts: 0, ptsCont: 0, matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
       });

@@ -75,6 +75,76 @@ function PodiumBlock({ team, position, height }) {
   );
 }
 
+// ── Match history ─────────────────────────────────────────────────────────────
+
+function MatchesHistory({ tournoi }) {
+  const [openTour, setOpenTour] = useState(null);
+
+  return (
+    <div className="card p-0 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100">
+        <h3 className="font-black text-navy-600">📋 Matchs par tour</h3>
+      </div>
+      {Array.from({ length: tournoi.nbTours }, (_, i) => i + 1).map((t) => {
+        const matches = tournoi.matchs.filter((m) => m.tour === t);
+        const real    = matches.filter((m) => !m.bye);
+        const byes    = matches.filter((m) => m.bye);
+        const isOpen  = openTour === t;
+        return (
+          <div key={t} className="border-t border-gray-100">
+            <button
+              className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors text-left"
+              onClick={() => setOpenTour(isOpen ? null : t)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center shrink-0">✓</span>
+                <span className="font-bold text-gray-700">Tour {t}</span>
+                <span className="text-xs text-gray-400">{real.length} match{real.length !== 1 ? 's' : ''}</span>
+              </div>
+              <span className={`text-gray-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {isOpen && (
+              <div className="px-4 pb-4 flex flex-col gap-1.5 animate-slide-up">
+                {real.map((m, i) => {
+                  const teamA = tournoi.equipes.find((e) => e.id === m.A);
+                  const teamB = tournoi.equipes.find((e) => e.id === m.B);
+                  const winA  = m.sA > m.sB;
+                  const winB  = m.sB > m.sA;
+                  return (
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 text-sm">
+                      <span className={`flex-1 text-right font-bold truncate ${winA ? 'text-emerald-700' : 'text-gray-500'}`}>
+                        {winA && '🏅 '}{teamA?.nom || '?'}
+                      </span>
+                      <div className="flex items-center gap-0.5 shrink-0 font-black text-base tabular-nums">
+                        <span className={`w-7 text-center ${winA ? 'text-emerald-600' : 'text-gray-400'}`}>{m.sA}</span>
+                        <span className="text-gray-300 text-sm">–</span>
+                        <span className={`w-7 text-center ${winB ? 'text-emerald-600' : 'text-gray-400'}`}>{m.sB}</span>
+                      </div>
+                      <span className={`flex-1 font-bold truncate ${winB ? 'text-emerald-700' : 'text-gray-500'}`}>
+                        {winB && '🏅 '}{teamB?.nom || '?'}
+                      </span>
+                    </div>
+                  );
+                })}
+                {byes.map((m, i) => {
+                  const team = tournoi.equipes.find((e) => e.id === m.A);
+                  return (
+                    <div key={`bye-${i}`} className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs text-gray-400 border border-dashed border-gray-200">
+                      <span>💤</span>
+                      <span className="font-medium">{team?.nom}</span>
+                      <span>— exempt</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function Resultats() {
@@ -201,6 +271,9 @@ export default function Resultats() {
             </tbody>
           </table>
         </div>
+
+        {/* Match history by round */}
+        <MatchesHistory tournoi={tournoi} />
 
         {/* Actions */}
         <div className="flex gap-3 flex-wrap">
