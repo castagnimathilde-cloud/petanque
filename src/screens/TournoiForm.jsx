@@ -100,10 +100,10 @@ export default function TournoiForm({ onCancel, onCreated }) {
               </select>
             </Field>
             <Field label="Date">
-              <input className="input-field" placeholder="14/07/2025" value={form.date} onChange={(e) => set('date', e.target.value)} />
+              <input type="date" className="input-field" value={form.date} onChange={(e) => set('date', e.target.value)} />
             </Field>
             <Field label="Heure de début">
-              <input className="input-field" placeholder="14h00" value={form.heure} onChange={(e) => set('heure', e.target.value)} />
+              <input type="time" className="input-field" value={form.heure} onChange={(e) => set('heure', e.target.value)} />
             </Field>
           </div>
         </div>
@@ -178,6 +178,28 @@ export default function TournoiForm({ onCancel, onCreated }) {
             </div>
           </div>
         </div>
+
+        {/* Live preview */}
+        {form.nom.trim() && (
+          <div className="card bg-gradient-to-br from-navy-50 to-blue-50 border-navy-100 animate-slide-up">
+            <p className="text-xs font-black text-navy-400 uppercase tracking-widest mb-3">Aperçu du tournoi</p>
+            <p className="text-navy-700 font-black text-lg mb-2">{form.nom}</p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="badge bg-blue-100 text-blue-700">
+                {form.joueursParEq === 1 ? 'Tête-à-tête' : form.joueursParEq === 2 ? 'Doublette' : 'Triplette'}
+              </span>
+              <span className="badge bg-emerald-100 text-emerald-700">{form.scoreCible} pts</span>
+              <span className="badge bg-purple-100 text-purple-700">{form.nbTours} tours</span>
+              <span className="badge bg-amber-100 text-amber-700">{form.nbTerrains} terrains</span>
+              <span className="badge bg-gray-100 text-gray-600">
+                {form.eqUnlimited ? '∞ équipes' : `${form.eqMin}–${form.eqMax} équipes`}
+              </span>
+              {form.date && <span className="badge bg-navy-100 text-navy-600">📅 {form.date}</span>}
+              {form.heure && <span className="badge bg-navy-100 text-navy-600">⏰ {form.heure}</span>}
+              {form.matchNulAutorise && <span className="badge bg-gray-100 text-gray-500">Nul autorisé</span>}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-3 justify-end pt-2">
           <button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button>

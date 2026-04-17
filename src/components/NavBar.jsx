@@ -54,11 +54,20 @@ export default function NavBar({ onDashboard }) {
             </button>
           ))}
 
-          {/* Active tournament name */}
-          {tournoi && (
-            <span className="ml-auto text-xs text-gray-300 font-medium truncate max-w-32 hidden sm:block shrink-0 pr-2">
-              {tournoi.nom}
-            </span>
+          {/* Tournament status chip */}
+          {tournoi && activeScreen !== 'dashboard' && (
+            <div className="ml-auto flex items-center gap-2 shrink-0 pr-1">
+              <span className="hidden sm:block text-xs text-gray-400 font-medium truncate max-w-[8rem]">{tournoi.nom}</span>
+              <span className={`text-xs font-black px-2.5 py-1 rounded-full whitespace-nowrap ${
+                tournoi.finished
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : tournoi.started
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {tournoi.finished ? '🏆 Terminé' : tournoi.started ? `Tour ${tournoi.tourActuel}/${tournoi.nbTours}` : '📝 Inscriptions'}
+              </span>
+            </div>
           )}
         </div>
       </div>

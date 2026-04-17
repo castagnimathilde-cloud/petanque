@@ -308,7 +308,7 @@ function ManualAddForm({ tournoi }) {
 // ── Main Equipes screen ───────────────────────────────────────────────────────
 
 export default function Equipes() {
-  const { getActiveTournoi, importEquipes, removeEquipe, startTournoi, openKiosk, setScreen, kioskOpen, closeKiosk } = useTournamentStore();
+  const { getActiveTournoi, importEquipes, removeEquipe, startTournoi, openKiosk, setScreen, kioskOpen, closeKiosk, setForfait } = useTournamentStore();
   const tournoi = getActiveTournoi();
 
   const [startError, setStartError] = useState('');
@@ -429,7 +429,7 @@ export default function Equipes() {
       {qrZoomed && <QRZoomModal url={qrUrl} tournoi={tournoi} onClose={() => setQrZoomed(false)} />}
       {shareOpen && <ShareSheet url={qrUrl} tournoi={tournoi} onClose={() => setShareOpen(false)} />}
 
-      <div className="max-w-3xl mx-auto p-4 flex flex-col gap-4">
+      <div className={`max-w-3xl mx-auto p-4 flex flex-col gap-4 ${canStart ? 'pb-28' : ''}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -629,14 +629,21 @@ export default function Equipes() {
                       {eq.j1}{eq.j2 ? ` · ${eq.j2}` : ''}{eq.j3 ? ` · ${eq.j3}` : ''}
                     </div>
                   </div>
-                  {!tournoi.started && (
+                  {!tournoi.started ? (
                     <button
                       className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition-colors shrink-0"
                       onClick={() => removeEquipe(tournoi.id, eq.id)}
                     >
                       Retirer
                     </button>
-                  )}
+                  ) : !tournoi.finished ? (
+                    <button
+                      className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${eq.forfait ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
+                      onClick={() => setForfait(tournoi.id, eq.id, !eq.forfait)}
+                    >
+                      {eq.forfait ? '↩ Réintégrer' : '🚫 Forfait'}
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -650,6 +657,24 @@ export default function Equipes() {
           )}
         </div>
       </div>
+
+      {/* Sticky launch CTA */}
+      {canStart && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-2xl p-4 animate-slide-up">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div>
+              <p className="font-black text-navy-600">{tournoi.equipes.length} équipes prêtes 🎯</p>
+              <p className="text-gray-400 text-xs">Tout est bon pour lancer !</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {startError && <span className="text-red-600 text-sm font-medium">{startError}</span>}
+              <button className="btn-primary px-6 text-base active:scale-95" onClick={handleStart}>
+                🚀 Lancer le tournoi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

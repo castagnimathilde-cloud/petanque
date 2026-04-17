@@ -49,13 +49,13 @@ export default function Classement() {
       {/* Rankings */}
       <div className="card p-0 overflow-hidden">
         {/* Header row */}
-        <div className="grid grid-cols-[2.5rem_1fr_2.5rem_2.5rem_3.5rem_3.5rem_3.5rem] bg-gradient-to-r from-navy-600 to-blue-700 text-white text-xs font-bold px-2 py-3">
+        <div className="grid grid-cols-[2rem_1fr_2.5rem_3.5rem] sm:grid-cols-[2.5rem_1fr_2.5rem_2.5rem_3.5rem_3.5rem_3.5rem] bg-gradient-to-r from-navy-600 to-blue-700 text-white text-xs font-bold px-2 py-3">
           <div className="text-center">#</div>
           <div className="pl-2">Équipe</div>
           <div className="text-center">V</div>
-          <div className="text-center">D</div>
-          <div className="text-center">Pts+</div>
-          <div className="text-center">Pts−</div>
+          <div className="hidden sm:block text-center">D</div>
+          <div className="hidden sm:block text-center">Pts+</div>
+          <div className="hidden sm:block text-center">Pts−</div>
           <div className="text-center">Diff</div>
         </div>
 
@@ -75,7 +75,7 @@ export default function Classement() {
                 isFirst ? 'bg-amber-50' : i === 1 ? 'bg-gray-50/60' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
               } ${team.forfait ? 'opacity-50' : ''}`}
             >
-              <div className="grid grid-cols-[2.5rem_1fr_2.5rem_2.5rem_3.5rem_3.5rem_3.5rem] items-center px-2 py-3">
+              <div className="grid grid-cols-[2rem_1fr_2.5rem_3.5rem] sm:grid-cols-[2.5rem_1fr_2.5rem_2.5rem_3.5rem_3.5rem_3.5rem] items-center px-2 py-3">
                 {/* Rank */}
                 <div className="text-center text-lg">
                   {i < 3 ? medals[i] : <span className="text-gray-400 font-bold text-sm">{i + 1}</span>}
@@ -110,12 +110,12 @@ export default function Classement() {
                 <div className="text-center font-black text-emerald-600 text-sm">
                   {team.v % 1 === 0 ? team.v : team.v.toFixed(1)}
                 </div>
-                {/* D */}
-                <div className="text-center font-bold text-red-400 text-sm">{team.d}</div>
-                {/* Pts+ */}
-                <div className="text-center text-gray-600 text-sm font-medium">{team.pts}</div>
-                {/* Pts− */}
-                <div className="text-center text-gray-400 text-sm">{team.ptsCont}</div>
+                {/* D — hidden on mobile */}
+                <div className="hidden sm:block text-center font-bold text-red-400 text-sm">{team.d}</div>
+                {/* Pts+ — hidden on mobile */}
+                <div className="hidden sm:block text-center text-gray-600 text-sm font-medium">{team.pts}</div>
+                {/* Pts− — hidden on mobile */}
+                <div className="hidden sm:block text-center text-gray-400 text-sm">{team.ptsCont}</div>
                 {/* Diff */}
                 <div className={`text-center font-black text-sm ${diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-red-500' : 'text-gray-400'}`}>
                   {diff > 0 ? '+' : ''}{diff}
