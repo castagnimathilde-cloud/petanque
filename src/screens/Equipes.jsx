@@ -319,6 +319,8 @@ export default function Equipes() {
   const [apiStatus, setApiStatus] = useState('unknown');
   const [qrZoomed, setQrZoomed] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
   const lastTsRef = useRef(0);
 
   const qrUrl = tournoi ? `${window.location.origin}/?register=${tournoi.id}` : '';
@@ -573,12 +575,15 @@ export default function Equipes() {
         {/* Manual add */}
         {!tournoi.started && (
           <div className="card">
-            <details>
-              <summary className="font-bold text-navy-600 cursor-pointer select-none">
-                ➕ Ajouter une équipe manuellement
-              </summary>
-              <ManualAddForm tournoi={tournoi} />
-            </details>
+            <button
+              type="button"
+              className="flex items-center justify-between w-full font-bold text-navy-600 hover:text-navy-700 transition-colors"
+              onClick={() => setAddOpen((v) => !v)}
+            >
+              <span>➕ Ajouter une équipe manuellement</span>
+              <span className={`text-gray-400 text-sm transition-transform duration-200 ${addOpen ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {addOpen && <ManualAddForm tournoi={tournoi} />}
           </div>
         )}
 
@@ -630,12 +635,30 @@ export default function Equipes() {
                     </div>
                   </div>
                   {!tournoi.started ? (
-                    <button
-                      className="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded-lg hover:bg-red-50 transition-colors shrink-0"
-                      onClick={() => removeEquipe(tournoi.id, eq.id)}
-                    >
-                      Retirer
-                    </button>
+                    confirmRemove === eq.id ? (
+                      <div className="flex items-center gap-1.5 animate-slide-up shrink-0">
+                        <button
+                          className="text-xs bg-red-500 text-white font-bold px-2.5 py-1.5 rounded-xl hover:bg-red-600 transition-colors active:scale-95"
+                          onClick={() => { removeEquipe(tournoi.id, eq.id); setConfirmRemove(null); }}
+                        >
+                          Retirer
+                        </button>
+                        <button
+                          className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-xl hover:bg-gray-100 transition-colors"
+                          onClick={() => setConfirmRemove(null)}
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="text-gray-300 hover:text-red-500 hover:bg-red-50 text-lg px-2 py-1 rounded-lg transition-colors shrink-0"
+                        onClick={() => setConfirmRemove(eq.id)}
+                        title="Retirer cette équipe"
+                      >
+                        ✕
+                      </button>
+                    )
                   ) : !tournoi.finished ? (
                     <button
                       className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${eq.forfait ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
@@ -650,10 +673,14 @@ export default function Equipes() {
           )}
 
           {!tournoi.started && tournoi.equipes.length < tournoi.eqMin && (
-            <p className="text-center text-orange-500 text-xs mt-4 font-medium">
-              ⚠️ Minimum {tournoi.eqMin} équipes pour lancer
-              {' '}({tournoi.eqMin - tournoi.equipes.length} manquante{tournoi.eqMin - tournoi.equipes.length > 1 ? 's' : ''})
-            </p>
+            <div className="mt-3 flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium py-2.5 px-4 rounded-2xl">
+              <span>⚠️</span>
+              <span>
+                Il manque encore{' '}
+                <strong>{tournoi.eqMin - tournoi.equipes.length}</strong>{' '}
+                équipe{tournoi.eqMin - tournoi.equipes.length > 1 ? 's' : ''} pour lancer
+              </span>
+            </div>
           )}
         </div>
       </div>

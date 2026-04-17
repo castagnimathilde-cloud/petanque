@@ -27,13 +27,16 @@ function MatchCard({ match, matchIndex, tournoi }) {
 
   if (match.bye) {
     return (
-      <div className="card border-dashed bg-gray-50/80 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-base shrink-0">💤</div>
+      <div className="card border-dashed border-gray-200 bg-gray-50/60 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-lg shrink-0">💤</div>
         <div className="flex-1 min-w-0">
-          <span className="font-bold text-gray-600 truncate block">{teamA?.nom}</span>
-          <p className="text-gray-400 text-xs mt-0.5">Tour de repos · {tournoi.scoreCible} pts offerts</p>
+          <span className="font-bold text-gray-700 truncate block">{teamA?.nom}</span>
+          <p className="text-gray-400 text-xs mt-0.5">Exempt ce tour — victoire automatique</p>
         </div>
-        <span className="text-emerald-500 font-black text-base shrink-0">+{tournoi.scoreCible}</span>
+        <div className="shrink-0 text-right">
+          <span className="text-emerald-600 font-black text-lg">+{tournoi.scoreCible}</span>
+          <p className="text-gray-400 text-xs">pts</p>
+        </div>
       </div>
     );
   }
@@ -71,7 +74,7 @@ function MatchCard({ match, matchIndex, tournoi }) {
         )}
         {match.done
           ? <span className="text-xs font-bold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded-lg">✓ Validé</span>
-          : <span className="text-xs text-gray-400">Saisir le score</span>
+          : <span className="text-xs font-medium text-navy-400 bg-navy-50 px-2.5 py-1 rounded-lg border border-navy-100">✏️ À saisir</span>
         }
         {error && <span className="text-red-500 text-xs ml-auto font-medium animate-slide-up">⚠️ {error}</span>}
       </div>
@@ -210,8 +213,11 @@ export default function TourEnCours() {
           <div className="text-right shrink-0">
             <div className="text-3xl font-black">{doneCount}<span className="text-blue-300 text-xl">/{currentMatches.length}</span></div>
             <div className="text-blue-200 text-xs">matchs validés</div>
-            <div className="mt-2 bg-white/20 rounded-full h-2 w-32 ml-auto">
-              <div className="bg-white rounded-full h-2 transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div className="mt-2 flex items-center gap-2 justify-end">
+              <div className="bg-white/20 rounded-full h-2 w-28">
+                <div className="bg-white rounded-full h-2 transition-all duration-500" style={{ width: `${progress}%` }} />
+              </div>
+              <span className="text-white/70 text-xs font-bold tabular-nums w-8 text-right">{progress}%</span>
             </div>
           </div>
         </div>
@@ -242,10 +248,18 @@ export default function TourEnCours() {
       )}
 
       {/* All done celebration */}
-      {allDone && !isLastTour && (
-        <div className="card bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 text-center py-4 animate-pop-in">
-          <p className="text-emerald-700 font-black text-lg">🎉 Tous les matchs sont validés !</p>
-          <p className="text-emerald-500 text-sm mt-1">Passez au tour suivant quand vous êtes prêt.</p>
+      {allDone && (
+        <div className={`card text-center py-5 animate-pop-in ${
+          isLastTour
+            ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
+            : 'bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200'
+        }`}>
+          <p className={`font-black text-xl ${isLastTour ? 'text-amber-700' : 'text-emerald-700'}`}>
+            {isLastTour ? '🏆 Dernière manche terminée !' : '🎉 Tous les matchs sont validés !'}
+          </p>
+          <p className={`text-sm mt-1 ${isLastTour ? 'text-amber-600' : 'text-emerald-500'}`}>
+            {isLastTour ? 'Prêt à découvrir le classement final ?' : 'Passez au tour suivant quand vous êtes prêt.'}
+          </p>
         </div>
       )}
 
@@ -290,8 +304,8 @@ export default function TourEnCours() {
               {isLastTour ? '🏆 Résultats finaux' : 'Tour suivant →'}
             </button>
           ) : (
-            <span className="text-gray-400 text-sm">
-              {currentMatches.length - doneCount} match{currentMatches.length - doneCount > 1 ? 's' : ''} restant{currentMatches.length - doneCount > 1 ? 's' : ''}
+            <span className="bg-amber-100 text-amber-700 text-sm font-bold px-4 py-2 rounded-xl">
+              ⏳ {currentMatches.length - doneCount} match{currentMatches.length - doneCount > 1 ? 's' : ''} restant{currentMatches.length - doneCount > 1 ? 's' : ''}
             </span>
           )}
         </div>

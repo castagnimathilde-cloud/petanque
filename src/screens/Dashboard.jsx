@@ -18,7 +18,10 @@ function TournoiCard({ tournoi, onSelect, onDelete }) {
   const catLabel = tournoi.cat === 'enfants' ? '👶 Enfants' : '🧑 Adultes';
 
   return (
-    <div className="card-hover group animate-slide-up" onClick={() => onSelect(tournoi.id)}>
+    <div
+      className="card-hover group relative animate-slide-up cursor-pointer"
+      onClick={() => !confirmDelete && onSelect(tournoi.id)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -32,9 +35,15 @@ function TournoiCard({ tournoi, onSelect, onDelete }) {
             <span>👥 {tournoi.equipes.length} équipe{tournoi.equipes.length !== 1 ? 's' : ''}</span>
             <span>🔄 {tournoi.nbTours} tours · 🎯 {tournoi.scoreCible} pts</span>
           </div>
+          {/* Hover affordance — desktop only */}
+          {!confirmDelete && (
+            <span className="hidden sm:inline-block text-navy-500 text-xs font-bold mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              Ouvrir →
+            </span>
+          )}
         </div>
 
-        {/* Delete — inline confirmation, always visible on mobile */}
+        {/* Delete — inline confirmation */}
         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           {confirmDelete ? (
             <div className="flex items-center gap-1.5 animate-slide-up">
@@ -55,7 +64,7 @@ function TournoiCard({ tournoi, onSelect, onDelete }) {
             <button
               className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all"
               onClick={() => setConfirmDelete(true)}
-              title="Supprimer"
+              title="Supprimer ce tournoi"
             >
               🗑
             </button>
@@ -96,13 +105,16 @@ export default function Dashboard({ onCreateNew }) {
         {tournois.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mt-5">
             {[
-              { label: 'En cours',     value: enCours.length,      icon: '▶' },
-              { label: 'Inscriptions', value: inscriptions.length, icon: '📝' },
-              { label: 'Terminés',     value: termines.length,     icon: '✓' },
+              { label: 'En cours',     value: enCours.length,      dot: 'bg-blue-300 animate-pulse' },
+              { label: 'Inscriptions', value: inscriptions.length, dot: 'bg-amber-300' },
+              { label: 'Terminés',     value: termines.length,     dot: 'bg-emerald-300' },
             ].map((s) => (
               <div key={s.label} className="bg-white/10 hover:bg-white/20 rounded-xl p-3 text-center transition-colors">
                 <div className="text-2xl font-black">{s.value}</div>
-                <div className="text-blue-200 text-xs mt-0.5">{s.label}</div>
+                <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
+                  <span className="text-blue-200 text-xs">{s.label}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -111,11 +123,14 @@ export default function Dashboard({ onCreateNew }) {
 
       {tournois.length === 0 ? (
         <div className="card text-center py-16 animate-pop-in">
-          <div className="text-6xl mb-4">🏆</div>
-          <h2 className="text-xl font-black text-gray-700 mb-2">Bienvenue !</h2>
-          <p className="text-gray-400 text-sm mb-1">Créez votre premier tournoi pour commencer.</p>
-          <p className="text-gray-300 text-xs mb-8">Inscriptions par QR code, scores en temps réel, classement automatique.</p>
-          <button className="btn-primary mx-auto px-8 py-3 text-base" onClick={onCreateNew}>
+          <div className="text-7xl mb-5">🎯</div>
+          <h2 className="text-2xl font-black text-gray-800 mb-2">Prêt à jouer ?</h2>
+          <p className="text-gray-500 text-base mb-1">Créez votre premier tournoi en 30 secondes.</p>
+          <p className="text-gray-400 text-sm mb-8">QR code d'inscription · scores en direct · classement automatique</p>
+          <button
+            className="bg-gradient-to-r from-navy-600 to-blue-600 text-white font-black px-8 py-3.5 rounded-2xl text-base hover:from-navy-700 hover:to-blue-700 transition-all shadow-lg active:scale-95 inline-flex items-center gap-2"
+            onClick={onCreateNew}
+          >
             🎯 Créer un tournoi
           </button>
         </div>
