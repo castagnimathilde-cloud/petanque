@@ -200,7 +200,7 @@ export const useTournamentStore = create((set, get) => ({
           equipes: t.equipes.map((e) => ({
             ...e,
             v: 0, d: 0, pts: 0, ptsCont: 0,
-            matchsJoues: 0, adversaires: [], byeRecu: false,
+            matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
           })),
         };
       }),
@@ -212,7 +212,7 @@ export const useTournamentStore = create((set, get) => ({
   startTournoi(tournoiId) {
     const t = get().getTournoi(tournoiId);
     if (!t) return { error: 'Tournoi introuvable' };
-    if (t.equipes.length < 2) return { error: 'Il faut au moins 2 équipes' };
+    if (t.equipes.length < t.eqMin) return { error: `Il faut au moins ${t.eqMin} équipes pour lancer le tournoi` };
 
     const newMatches = generateRound(t, 1);
 

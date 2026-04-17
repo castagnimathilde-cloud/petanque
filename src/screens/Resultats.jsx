@@ -80,13 +80,10 @@ function PodiumBlock({ team, position, height }) {
 export default function Resultats() {
   const { getActiveTournoi, goToDashboard, setScreen } = useTournamentStore();
   const tournoi = getActiveTournoi();
-  if (!tournoi) return null;
 
-  const ranked = getRankedTeams(tournoi);
-  const [winner, second, third] = ranked;
-
-  // Best match stat
+  // Must be called unconditionally (Rules of Hooks — no early return before hooks)
   const bestWin = useMemo(() => {
+    if (!tournoi) return null;
     let best = null;
     for (const m of tournoi.matchs) {
       if (!m.done || m.bye) continue;
@@ -103,6 +100,11 @@ export default function Resultats() {
     }
     return best;
   }, [tournoi]);
+
+  if (!tournoi) return null;
+
+  const ranked = getRankedTeams(tournoi);
+  const [winner, second, third] = ranked;
 
   const medals = ['🥇', '🥈', '🥉'];
 

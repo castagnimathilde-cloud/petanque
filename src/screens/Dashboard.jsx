@@ -7,6 +7,12 @@ function StatusBadge({ tournoi }) {
   return <span className="badge-inscriptions">Inscriptions</span>;
 }
 
+function formatDate(d) {
+  if (!d) return '';
+  const parts = d.split('-');
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+}
+
 function TournoiCard({ tournoi, onSelect, onDelete }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const catLabel = tournoi.cat === 'enfants' ? '👶 Enfants' : '🧑 Adultes';
@@ -21,7 +27,7 @@ function TournoiCard({ tournoi, onSelect, onDelete }) {
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-400">
             <span>{catLabel}</span>
-            {tournoi.date  && <span>📅 {tournoi.date}</span>}
+            {tournoi.date  && <span>📅 {formatDate(tournoi.date)}</span>}
             {tournoi.heure && <span>⏰ {tournoi.heure}</span>}
             <span>👥 {tournoi.equipes.length} équipe{tournoi.equipes.length !== 1 ? 's' : ''}</span>
             <span>🔄 {tournoi.nbTours} tours · 🎯 {tournoi.scoreCible} pts</span>
@@ -47,7 +53,7 @@ function TournoiCard({ tournoi, onSelect, onDelete }) {
             </div>
           ) : (
             <button
-              className="opacity-0 group-hover:opacity-100 sm:opacity-0 opacity-100 text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all"
+              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all"
               onClick={() => setConfirmDelete(true)}
               title="Supprimer"
             >

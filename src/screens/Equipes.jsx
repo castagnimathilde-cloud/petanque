@@ -486,7 +486,7 @@ export default function Equipes() {
         </div>
 
         {/* API error */}
-        {apiStatus.startsWith('error') && (
+        {apiStatus.startsWith('error') && !tournoi.started && (
           <div className="card border-2 border-amber-300 bg-amber-50">
             <div className="flex items-start gap-3">
               <span className="text-2xl shrink-0">⚠️</span>

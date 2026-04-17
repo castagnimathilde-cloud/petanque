@@ -50,8 +50,9 @@ export default function TournoiForm({ onCancel, onCreated }) {
     e.preventDefault();
     setError('');
     if (!form.nom.trim()) { setError('Le nom du tournoi est obligatoire'); return; }
-    if (form.eqMin < 2) { setError('Minimum 2 équipes'); return; }
+    if (form.eqMin < 2) { setError('Minimum 2 équipes requis'); return; }
     if (!form.eqUnlimited && form.eqMax < form.eqMin) { setError('Le max doit être ≥ au min'); return; }
+    if (form.nbTerrains < 1) { setError('Il faut au moins 1 terrain'); return; }
     try {
       const id = createTournoi({ ...form, eqMax: form.eqUnlimited ? UNLIMITED_EQ_MAX : form.eqMax });
       selectTournoi(id);
@@ -194,7 +195,7 @@ export default function TournoiForm({ onCancel, onCreated }) {
               <span className="badge bg-gray-100 text-gray-600">
                 {form.eqUnlimited ? '∞ équipes' : `${form.eqMin}–${form.eqMax} équipes`}
               </span>
-              {form.date && <span className="badge bg-navy-100 text-navy-600">📅 {form.date}</span>}
+              {form.date && <span className="badge bg-navy-100 text-navy-600">📅 {form.date.split('-').reverse().join('/')}</span>}
               {form.heure && <span className="badge bg-navy-100 text-navy-600">⏰ {form.heure}</span>}
               {form.matchNulAutorise && <span className="badge bg-gray-100 text-gray-500">Nul autorisé</span>}
             </div>
