@@ -18,8 +18,18 @@ function Toggle({ label, hint, checked, onChange }) {
       onClick={() => onChange(!checked)}
       className="flex items-center gap-3 cursor-pointer select-none group w-full text-left"
     >
-      <div className={`relative w-12 h-6 rounded-full transition-colors duration-200 shrink-0 ${checked ? 'bg-navy-600' : 'bg-gray-200 group-hover:bg-gray-300'}`}>
-        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
+      {/* Track w-14=56px, h-7=28px — thumb w-5=20px */}
+      <div className={`relative w-14 h-7 rounded-full transition-colors duration-200 shrink-0 ${checked ? 'bg-navy-600' : 'bg-gray-200 group-hover:bg-gray-300'}`}>
+        {/* "Oui" — left side, visible when checked */}
+        <span className={`absolute left-2 top-1/2 -translate-y-1/2 text-xs font-black pointer-events-none transition-opacity duration-200 text-white ${checked ? 'opacity-100' : 'opacity-0'}`}>
+          Oui
+        </span>
+        {/* "Non" — right side, visible when unchecked */}
+        <span className={`absolute right-1.5 top-1/2 -translate-y-1/2 text-xs font-black pointer-events-none transition-opacity duration-200 text-gray-400 ${checked ? 'opacity-0' : 'opacity-100'}`}>
+          Non
+        </span>
+        {/* Thumb: unchecked=translate-x-1(4px), checked=translate-x-8(32px) → 56-20-4=32 ✓ */}
+        <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${checked ? 'translate-x-8' : 'translate-x-1'}`} />
       </div>
       <div>
         <span className="text-sm font-bold text-gray-700">{label}</span>
@@ -120,29 +130,37 @@ export default function TournoiForm({ onCancel, onCreated }) {
                 onChange={(e) => set('eqMin', Number(e.target.value))}
               />
             </Field>
-            <Field label="Maximum">
-              <input
-                type="number" className="input-field" min={2}
-                value={form.eqMax}
-                disabled={form.eqUnlimited}
-                onChange={(e) => set('eqMax', Number(e.target.value))}
-              />
-            </Field>
-            <div className="sm:col-span-2 bg-gray-50 rounded-2xl px-4 py-3">
-              <Toggle
-                label="Inscriptions illimitées"
-                hint="Aucun plafond sur le nombre d'équipes"
-                checked={form.eqUnlimited}
-                onChange={(v) => set('eqUnlimited', v)}
-              />
+
+            {/* Maximum + toggle illimité groupés dans la même colonne */}
+            <div className="flex flex-col gap-2">
+              <Field label="Maximum">
+                <input
+                  type="number"
+                  min={2}
+                  value={form.eqMax}
+                  disabled={form.eqUnlimited}
+                  onChange={(e) => set('eqMax', Number(e.target.value))}
+                  className={`input-field transition-colors ${form.eqUnlimited ? '!bg-gray-200 !border-gray-200 !text-gray-400' : ''}`}
+                />
+              </Field>
+              <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+                <Toggle
+                  label="Équipes illimitées"
+                  checked={form.eqUnlimited}
+                  onChange={(v) => set('eqUnlimited', v)}
+                />
+              </div>
             </div>
-            <Field label="Format">
-              <select className="input-field" value={form.joueursParEq} onChange={(e) => set('joueursParEq', Number(e.target.value))}>
-                <option value={1}>1 joueur — Tête-à-tête</option>
-                <option value={2}>2 joueurs — Doublette</option>
-                <option value={3}>3 joueurs — Triplette</option>
-              </select>
-            </Field>
+
+            <div className="sm:col-span-2">
+              <Field label="Format">
+                <select className="input-field" value={form.joueursParEq} onChange={(e) => set('joueursParEq', Number(e.target.value))}>
+                  <option value={1}>1 joueur — Tête-à-tête</option>
+                  <option value={2}>2 joueurs — Doublette</option>
+                  <option value={3}>3 joueurs — Triplette</option>
+                </select>
+              </Field>
+            </div>
           </div>
         </div>
 
@@ -168,7 +186,7 @@ export default function TournoiForm({ onCancel, onCreated }) {
               <input type="number" className="input-field" min={1} value={form.nbTerrains} onChange={(e) => set('nbTerrains', Number(e.target.value))} />
             </Field>
             <div className="flex items-end">
-              <div className="bg-gray-50 rounded-2xl px-4 py-3 w-full">
+              <div className="bg-gray-50 rounded-xl px-3 py-2.5 w-full">
                 <Toggle
                   label="Match nul autorisé"
                   hint="Un match peut se terminer à égalité"
@@ -195,8 +213,8 @@ export default function TournoiForm({ onCancel, onCreated }) {
               <span className="badge bg-gray-100 text-gray-600">
                 {form.eqUnlimited ? '∞ équipes' : `${form.eqMin}–${form.eqMax} équipes`}
               </span>
-              {form.date && <span className="badge bg-navy-100 text-navy-600">📅 {form.date.split('-').reverse().join('/')}</span>}
-              {form.heure && <span className="badge bg-navy-100 text-navy-600">⏰ {form.heure}</span>}
+              {form.date && <span className="badge bg-navy-100 text-navy-700">📅 {form.date.split('-').reverse().join('/')}</span>}
+              {form.heure && <span className="badge bg-navy-100 text-navy-700">⏰ {form.heure}</span>}
               {form.matchNulAutorise && <span className="badge bg-gray-100 text-gray-500">Nul autorisé</span>}
             </div>
           </div>
