@@ -16,35 +16,40 @@ function RoundDots({ nbTours, tourActuel }) {
   );
 }
 
-const CONFETTI_PIECES = [
-  { color: '#facc15', dx: '-70px', dy: '-55px', rot: '45deg'  },
-  { color: '#f472b6', dx: '70px',  dy: '-55px', rot: '-30deg' },
-  { color: '#34d399', dx: '-45px', dy: '-75px', rot: '120deg' },
-  { color: '#60a5fa', dx: '45px',  dy: '-75px', rot: '-90deg' },
-  { color: '#fb923c', dx: '-85px', dy: '-30px', rot: '60deg'  },
-  { color: '#a78bfa', dx: '85px',  dy: '-30px', rot: '-60deg' },
-  { color: '#f87171', dx: '0px',   dy: '-85px', rot: '180deg' },
-  { color: '#4ade80', dx: '-55px', dy: '-20px', rot: '-150deg'},
-  { color: '#38bdf8', dx: '55px',  dy: '-20px', rot: '150deg' },
-  { color: '#fbbf24', dx: '-30px', dy: '-90px', rot: '-45deg' },
+// Confetti directed toward the winner's side (A = left, B = right)
+const CONFETTI_A = [
+  { color: '#facc15', dx: '-65px', dy: '-55px', rot: '45deg'   },
+  { color: '#f472b6', dx: '-30px', dy: '-75px', rot: '-30deg'  },
+  { color: '#34d399', dx: '-85px', dy: '-35px', rot: '120deg'  },
+  { color: '#60a5fa', dx: '-10px', dy: '-85px', rot: '-90deg'  },
+  { color: '#fb923c', dx: '-95px', dy: '-15px', rot: '60deg'   },
+  { color: '#a78bfa', dx: '-50px', dy: '-80px', rot: '-60deg'  },
+  { color: '#f87171', dx: '-75px', dy: '-60px', rot: '180deg'  },
+  { color: '#4ade80', dx: '-20px', dy: '-50px', rot: '-150deg' },
+  { color: '#38bdf8', dx: '-105px',dy: '-30px', rot: '150deg'  },
+  { color: '#fbbf24', dx: '-45px', dy: '-90px', rot: '-45deg'  },
 ];
+const CONFETTI_B_PIECES = CONFETTI_A.map((p) => ({
+  ...p,
+  dx: p.dx.startsWith('-') ? p.dx.slice(1) : '-' + p.dx,
+  rot: p.rot.startsWith('-') ? p.rot.slice(1) : '-' + p.rot,
+}));
 
-function VictoryEffects({ side }) {
-  const stars = side === 'A'
-    ? ['⭐', '✨', '🌟']
-    : ['🌟', '✨', '⭐'];
+function VictoryEffects({ side, winnerName }) {
+  const pieces = side === 'A' ? CONFETTI_A : CONFETTI_B_PIECES;
+  const originX = side === 'A' ? '22%' : '78%';
 
   return (
     <>
-      {/* Confetti burst from center */}
+      {/* Confetti burst from winner's side */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl" style={{ zIndex: 10 }}>
-        {CONFETTI_PIECES.map((p, i) => (
+        {pieces.map((p, i) => (
           <div
             key={i}
             className="absolute w-3 h-2 rounded-sm animate-confetti-burst"
             style={{
               background: p.color,
-              left: '50%',
+              left: originX,
               top: '50%',
               '--dx': p.dx,
               '--dy': p.dy,
@@ -55,24 +60,21 @@ function VictoryEffects({ side }) {
         ))}
       </div>
 
-      {/* Winner banner */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center" style={{ zIndex: 20 }}>
-        <div className="animate-winner-banner absolute left-1/2 top-1/2 bg-yellow-400 text-yellow-900 font-black text-base sm:text-lg px-5 py-2 rounded-2xl shadow-xl whitespace-nowrap">
-          🏆 Victoire !
+      {/* Winner banner with team name */}
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+        <div className="animate-winner-banner absolute left-1/2 top-1/2 bg-yellow-400 text-yellow-900 font-black text-sm sm:text-base px-4 py-2 rounded-2xl shadow-xl text-center max-w-[80%]"
+          style={{ transform: 'translate(-50%, -50%)' }}>
+          🏆 {winnerName} gagne !
         </div>
       </div>
 
-      {/* Floating stars on the winner's side */}
+      {/* Floating stars on winner's side */}
       <div
-        className={`absolute top-0 bottom-0 pointer-events-none flex flex-col justify-around items-center gap-1`}
+        className="absolute top-0 bottom-0 pointer-events-none flex flex-col justify-around items-center"
         style={{ [side === 'A' ? 'left' : 'right']: '4px', zIndex: 10 }}
       >
-        {stars.map((s, i) => (
-          <span
-            key={i}
-            className="text-lg animate-float-star"
-            style={{ animationDelay: `${i * 120}ms` }}
-          >
+        {['⭐', '✨', '🌟'].map((s, i) => (
+          <span key={i} className="text-lg animate-float-star" style={{ animationDelay: `${i * 120}ms` }}>
             {s}
           </span>
         ))}
@@ -146,7 +148,12 @@ function MatchCard({ match, matchIndex, tournoi }) {
     <div className={`card relative transition-all duration-300 ${justWon ? 'animate-winner-flash' : match.done ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:shadow-md'}`}>
 
       {/* Victory overlay effects */}
-      {justWon && winSide && <VictoryEffects side={winSide} />}
+      {justWon && winSide && (
+        <VictoryEffects
+          side={winSide}
+          winnerName={winSide === 'A' ? teamA?.nom : teamB?.nom}
+        />
+      )}
 
       {/* Terrain + status */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
