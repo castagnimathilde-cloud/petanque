@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
 
 function RoundDots({ nbTours, tourActuel }) {
@@ -21,6 +21,19 @@ function MatchCard({ match, matchIndex, tournoi }) {
   const [sA, setSA] = useState(match.sA !== null ? String(match.sA) : '');
   const [sB, setSB] = useState(match.sB !== null ? String(match.sB) : '');
   const [error, setError] = useState('');
+  const [justWon, setJustWon] = useState(false);
+  const [medalSide, setMedalSide] = useState(null); // 'A' | 'B' | null
+  const prevDone = useRef(match.done);
+
+  useEffect(() => {
+    if (!prevDone.current && match.done) {
+      setJustWon(true);
+      setMedalSide(match.sA > match.sB ? 'A' : match.sB > match.sA ? 'B' : null);
+      const t = setTimeout(() => { setJustWon(false); setMedalSide(null); }, 1400);
+      return () => clearTimeout(t);
+    }
+    prevDone.current = match.done;
+  }, [match.done, match.sA, match.sB]);
 
   const teamA = tournoi.equipes.find((e) => e.id === match.A);
   const teamB = match.B ? tournoi.equipes.find((e) => e.id === match.B) : null;
@@ -64,7 +77,7 @@ function MatchCard({ match, matchIndex, tournoi }) {
   const terrainLabel = match.terrain ? `Terrain ${match.terrain}` : null;
 
   return (
-    <div className={`card transition-all duration-200 ${match.done ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:shadow-md'}`}>
+    <div className={`card relative transition-all duration-200 ${justWon ? 'animate-winner-flash' : match.done ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:shadow-md'}`}>
       {/* Terrain + status */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {terrainLabel && (
@@ -82,8 +95,11 @@ function MatchCard({ match, matchIndex, tournoi }) {
       {/* Teams + scores */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Team A */}
-        <div className="flex-1 min-w-0 text-right">
-          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerA ? 'text-emerald-700' : 'text-gray-800'}`}>
+        <div className="flex-1 min-w-0 text-right relative">
+          {medalSide === 'A' && (
+            <span className="absolute right-0 -top-1 text-xl pointer-events-none animate-float-medal">🏅</span>
+          )}
+          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerA ? 'text-emerald-700' : 'text-gray-800'} ${justWon && medalSide === 'A' ? 'animate-winner-bounce' : ''}`}>
             {winnerA && '🏅 '}{teamA?.nom || '?'}
           </span>
           {teamA?.j1 && (
@@ -132,8 +148,11 @@ function MatchCard({ match, matchIndex, tournoi }) {
         </div>
 
         {/* Team B */}
-        <div className="flex-1 min-w-0">
-          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerB ? 'text-emerald-700' : 'text-gray-800'}`}>
+        <div className="flex-1 min-w-0 relative">
+          {medalSide === 'B' && (
+            <span className="absolute left-0 -top-1 text-xl pointer-events-none animate-float-medal">🏅</span>
+          )}
+          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerB ? 'text-emerald-700' : 'text-gray-800'} ${justWon && medalSide === 'B' ? 'animate-winner-bounce' : ''}`}>
             {winnerB && '🏅 '}{teamB?.nom || '?'}
           </span>
           {teamB?.j1 && (
