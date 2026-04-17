@@ -16,20 +16,86 @@ function RoundDots({ nbTours, tourActuel }) {
   );
 }
 
+const CONFETTI_PIECES = [
+  { color: '#facc15', dx: '-70px', dy: '-55px', rot: '45deg'  },
+  { color: '#f472b6', dx: '70px',  dy: '-55px', rot: '-30deg' },
+  { color: '#34d399', dx: '-45px', dy: '-75px', rot: '120deg' },
+  { color: '#60a5fa', dx: '45px',  dy: '-75px', rot: '-90deg' },
+  { color: '#fb923c', dx: '-85px', dy: '-30px', rot: '60deg'  },
+  { color: '#a78bfa', dx: '85px',  dy: '-30px', rot: '-60deg' },
+  { color: '#f87171', dx: '0px',   dy: '-85px', rot: '180deg' },
+  { color: '#4ade80', dx: '-55px', dy: '-20px', rot: '-150deg'},
+  { color: '#38bdf8', dx: '55px',  dy: '-20px', rot: '150deg' },
+  { color: '#fbbf24', dx: '-30px', dy: '-90px', rot: '-45deg' },
+];
+
+function VictoryEffects({ side }) {
+  const stars = side === 'A'
+    ? ['⭐', '✨', '🌟']
+    : ['🌟', '✨', '⭐'];
+
+  return (
+    <>
+      {/* Confetti burst from center */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl" style={{ zIndex: 10 }}>
+        {CONFETTI_PIECES.map((p, i) => (
+          <div
+            key={i}
+            className="absolute w-3 h-2 rounded-sm animate-confetti-burst"
+            style={{
+              background: p.color,
+              left: '50%',
+              top: '50%',
+              '--dx': p.dx,
+              '--dy': p.dy,
+              '--rot': p.rot,
+              animationDelay: `${i * 25}ms`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Winner banner */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center" style={{ zIndex: 20 }}>
+        <div className="animate-winner-banner absolute left-1/2 top-1/2 bg-yellow-400 text-yellow-900 font-black text-base sm:text-lg px-5 py-2 rounded-2xl shadow-xl whitespace-nowrap">
+          🏆 Victoire !
+        </div>
+      </div>
+
+      {/* Floating stars on the winner's side */}
+      <div
+        className={`absolute top-0 bottom-0 pointer-events-none flex flex-col justify-around items-center gap-1`}
+        style={{ [side === 'A' ? 'left' : 'right']: '4px', zIndex: 10 }}
+      >
+        {stars.map((s, i) => (
+          <span
+            key={i}
+            className="text-lg animate-float-star"
+            style={{ animationDelay: `${i * 120}ms` }}
+          >
+            {s}
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function MatchCard({ match, matchIndex, tournoi }) {
   const { setScore } = useTournamentStore();
   const [sA, setSA] = useState(match.sA !== null ? String(match.sA) : '');
   const [sB, setSB] = useState(match.sB !== null ? String(match.sB) : '');
   const [error, setError] = useState('');
   const [justWon, setJustWon] = useState(false);
-  const [medalSide, setMedalSide] = useState(null); // 'A' | 'B' | null
+  const [winSide, setWinSide] = useState(null); // 'A' | 'B' | null
   const prevDone = useRef(match.done);
 
   useEffect(() => {
     if (!prevDone.current && match.done) {
+      const side = match.sA > match.sB ? 'A' : match.sB > match.sA ? 'B' : null;
       setJustWon(true);
-      setMedalSide(match.sA > match.sB ? 'A' : match.sB > match.sA ? 'B' : null);
-      const t = setTimeout(() => { setJustWon(false); setMedalSide(null); }, 1400);
+      setWinSide(side);
+      const t = setTimeout(() => { setJustWon(false); setWinSide(null); }, 1800);
       return () => clearTimeout(t);
     }
     prevDone.current = match.done;
@@ -77,7 +143,11 @@ function MatchCard({ match, matchIndex, tournoi }) {
   const terrainLabel = match.terrain ? `Terrain ${match.terrain}` : null;
 
   return (
-    <div className={`card relative transition-all duration-200 ${justWon ? 'animate-winner-flash' : match.done ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:shadow-md'}`}>
+    <div className={`card relative transition-all duration-300 ${justWon ? 'animate-winner-flash' : match.done ? 'bg-emerald-50 border-emerald-200' : 'bg-white hover:shadow-md'}`}>
+
+      {/* Victory overlay effects */}
+      {justWon && winSide && <VictoryEffects side={winSide} />}
+
       {/* Terrain + status */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {terrainLabel && (
@@ -95,11 +165,8 @@ function MatchCard({ match, matchIndex, tournoi }) {
       {/* Teams + scores */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Team A */}
-        <div className="flex-1 min-w-0 text-right relative">
-          {medalSide === 'A' && (
-            <span className="absolute right-0 -top-1 text-xl pointer-events-none animate-float-medal">🏅</span>
-          )}
-          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerA ? 'text-emerald-700' : 'text-gray-800'} ${justWon && medalSide === 'A' ? 'animate-winner-bounce' : ''}`}>
+        <div className="flex-1 min-w-0 text-right">
+          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerA ? 'text-emerald-700' : 'text-gray-800'} ${justWon && winSide === 'A' ? 'animate-winner-bounce' : ''}`}>
             {winnerA && '🏅 '}{teamA?.nom || '?'}
           </span>
           {teamA?.j1 && (
@@ -119,7 +186,7 @@ function MatchCard({ match, matchIndex, tournoi }) {
                 : winnerA
                   ? 'border-emerald-400 bg-emerald-50 focus:border-emerald-500'
                   : 'border-gray-200 hover:border-navy-300 focus:border-navy-500 focus:bg-blue-50/30'
-            }`}
+            } ${justWon ? 'animate-score-pop' : ''}`}
             value={sA}
             onChange={(e) => !match.done && setSA(e.target.value)}
             onKeyDown={(e) => {
@@ -138,7 +205,7 @@ function MatchCard({ match, matchIndex, tournoi }) {
                 : winnerB
                   ? 'border-emerald-400 bg-emerald-50 focus:border-emerald-500'
                   : 'border-gray-200 hover:border-navy-300 focus:border-navy-500 focus:bg-blue-50/30'
-            }`}
+            } ${justWon ? 'animate-score-pop' : ''}`}
             value={sB}
             onChange={(e) => !match.done && setSB(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && isValid) handleValidate(); }}
@@ -148,11 +215,8 @@ function MatchCard({ match, matchIndex, tournoi }) {
         </div>
 
         {/* Team B */}
-        <div className="flex-1 min-w-0 relative">
-          {medalSide === 'B' && (
-            <span className="absolute left-0 -top-1 text-xl pointer-events-none animate-float-medal">🏅</span>
-          )}
-          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerB ? 'text-emerald-700' : 'text-gray-800'} ${justWon && medalSide === 'B' ? 'animate-winner-bounce' : ''}`}>
+        <div className="flex-1 min-w-0">
+          <span className={`font-black truncate block text-sm sm:text-base leading-tight ${winnerB ? 'text-emerald-700' : 'text-gray-800'} ${justWon && winSide === 'B' ? 'animate-winner-bounce' : ''}`}>
             {winnerB && '🏅 '}{teamB?.nom || '?'}
           </span>
           {teamB?.j1 && (
