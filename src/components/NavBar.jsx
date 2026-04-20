@@ -27,14 +27,15 @@ export default function NavBar({ onDashboard }) {
 
             {/* Logo / Dashboard */}
             <button
-              className={`flex items-center gap-1.5 px-3 py-3.5 text-sm font-black whitespace-nowrap transition-all border-b-2 shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-2 whitespace-nowrap transition-all border-b-2 shrink-0 ${
                 activeScreen === 'dashboard'
-                  ? 'border-navy-600 text-navy-600'
-                  : 'border-transparent text-gray-400 hover:text-navy-600 hover:border-navy-200'
+                  ? 'border-navy-600'
+                  : 'border-transparent opacity-80 hover:opacity-100 hover:border-navy-200'
               }`}
               onClick={() => { goToDashboard(); onDashboard?.(); }}
             >
-              🎯 <span>Tournois</span>
+              <img src="/logo-lescale.jpg" alt="L'Escale" className="h-9 w-9 rounded-full object-cover shadow-sm" />
+              <span className="text-sm font-black text-gray-700">Tournois</span>
             </button>
 
             {/* Separator */}

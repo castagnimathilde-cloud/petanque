@@ -89,10 +89,13 @@ export default function Dashboard({ onCreateNew }) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <span className="text-4xl">🎯</span>
-              <h1 className="text-2xl font-black">Pétanque Tournois</h1>
+              <img src="/logo-lescale.jpg" alt="L'Escale" className="h-14 w-14 rounded-full object-cover shadow-lg border-2 border-white/30 shrink-0" />
+              <div>
+                <h1 className="text-2xl font-black leading-tight">Pétanque Tournois</h1>
+                <p className="text-blue-200 text-xs font-medium">Camping Caravaning L'Escale</p>
+              </div>
             </div>
-            <p className="text-blue-200 text-sm">Organisez vos tournois facilement</p>
+            <p className="text-blue-200 text-sm mt-1">Organisez vos tournois facilement</p>
           </div>
           <button
             className="bg-white text-navy-600 font-black px-5 py-3 rounded-2xl text-sm hover:bg-blue-50 transition-all shadow-lg shrink-0 active:scale-95"
