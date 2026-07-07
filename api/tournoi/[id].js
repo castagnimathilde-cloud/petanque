@@ -1,4 +1,21 @@
-import { redisGet, redisSet } from '../_redis.js';
+import Redis from 'ioredis';
+
+let _redis = null;
+function getRedis() {
+  if (!process.env.REDIS_URL) throw new Error("REDIS_URL manquant dans les variables d'environnement Vercel.");
+  if (!_redis || _redis.status === 'end' || _redis.status === 'close') {
+    _redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, enableReadyCheck: false, connectTimeout: 4000, commandTimeout: 4000, lazyConnect: true });
+    _redis.on('error', () => {});
+  }
+  return _redis;
+}
+async function rGet(key) {
+  const raw = await getRedis().get(key);
+  return raw === null ? null : JSON.parse(raw);
+}
+async function rSet(key, value, ttl) {
+  await getRedis().set(key, JSON.stringify(value), 'EX', ttl);
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,7 +27,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const data = await redisGet(`tournoi:${id}`);
+      const data = await rGet(`tournoi:${id}`);
       if (!data) return res.status(404).json({ error: 'Tournoi introuvable' });
       return res.json(data);
     } catch (e) {
@@ -18,10 +35,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // Accept both POST and PUT for saving tournament data
   if (req.method === 'POST' || req.method === 'PUT') {
     try {
-      await redisSet(`tournoi:${id}`, req.body, 86400 * 7);
+      await rSet(`tournoi:${id}`, req.body, 86400 * 7);
       return res.json({ ok: true });
     } catch (e) {
       return res.status(503).json({ error: 'Erreur serveur : ' + e.message });
