@@ -2,36 +2,33 @@ import Redis from 'ioredis';
 
 let _client = null;
 
-/**
- * Returns a singleton ioredis client using REDIS_URL env var.
- * Recreates the client if it has disconnected.
- */
 export function getRedis() {
   if (!process.env.REDIS_URL) {
-    throw new Error("REDIS_URL manquant dans les variables d'environnement Vercel.");
+    throw new Error('REDIS_URL manquant dans les variables Vercel. Ajoutez-la dans Settings → Environment Variables.');
   }
-  if (!_client || _client.status === 'end') {
+  if (!_client || _client.status === 'end' || _client.status === 'close') {
     _client = new Redis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 1,
+      connectTimeout: 4000,
+      commandTimeout: 4000,
+      lazyConnect: true,
       enableReadyCheck: false,
-      connectTimeout: 5000,
-      lazyConnect: false,
     });
+    _client.on('error', () => {}); // prevent unhandled error crash
   }
   return _client;
 }
 
-/** Store a JS value as JSON with optional TTL in seconds */
 export async function redisSet(key, value, ttlSeconds) {
   const redis = getRedis();
+  const payload = JSON.stringify(value);
   if (ttlSeconds) {
-    await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    await redis.set(key, payload, 'EX', ttlSeconds);
   } else {
-    await redis.set(key, JSON.stringify(value));
+    await redis.set(key, payload);
   }
 }
 
-/** Retrieve and parse a JSON value (returns null if missing) */
 export async function redisGet(key) {
   const redis = getRedis();
   const raw = await redis.get(key);
