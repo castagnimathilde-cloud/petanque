@@ -2,9 +2,10 @@ import Redis from 'ioredis';
 
 let _redis = null;
 function getRedis() {
-  if (!process.env.REDIS_URL) throw new Error("REDIS_URL manquant dans les variables d'environnement Vercel.");
+  const url = process.env.KV_URL || process.env.REDIS_URL;
+  if (!url) throw new Error("KV_URL / REDIS_URL manquant dans les variables d'environnement Vercel.");
   if (!_redis || _redis.status === 'end' || _redis.status === 'close') {
-    _redis = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: 1, enableReadyCheck: false, connectTimeout: 4000, commandTimeout: 4000, lazyConnect: true });
+    _redis = new Redis(url, { maxRetriesPerRequest: 1, enableReadyCheck: false, connectTimeout: 4000, commandTimeout: 4000, lazyConnect: true });
     _redis.on('error', () => {});
   }
   return _redis;

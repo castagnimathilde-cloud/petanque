@@ -3,17 +3,20 @@ import Redis from 'ioredis';
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  const url = process.env.REDIS_URL;
+  const kvUrl    = process.env.KV_URL;
+  const redisUrl = process.env.REDIS_URL;
+  const url      = kvUrl || redisUrl;
 
   if (!url) {
     return res.status(503).json({
       ok: false,
-      problem: 'REDIS_URL non défini dans les variables Vercel',
-      fix: 'Vercel → Settings → Environment Variables → ajouter REDIS_URL',
+      problem: 'KV_URL et REDIS_URL sont tous les deux absents',
+      kv_url_set: false,
+      redis_url_set: false,
+      fix: 'Vercel → Storage → redis-cinereous-door → Connect to Project',
     });
   }
 
-  // Show masked URL to help diagnose wrong format
   const masked = url.replace(/:[^:@]+@/, ':***@').substring(0, 80);
   const scheme = url.split('://')[0];
 
@@ -38,10 +41,13 @@ export default async function handler(req, res) {
   const ok = pingResult === 'PONG';
   return res.status(ok ? 200 : 503).json({
     ok,
-    redis_url_masked: masked,
+    url_source: kvUrl ? 'KV_URL' : 'REDIS_URL',
+    kv_url_set: !!kvUrl,
+    redis_url_set: !!redisUrl,
+    url_masked: masked,
     scheme,
     hint: scheme === 'redis'
-      ? '⚠️ Upstash nécessite rediss:// (avec TLS). Vérifiez l\'URL dans votre dashboard Upstash.'
+      ? '⚠️ Upstash nécessite rediss:// (TLS). Vérifiez votre URL.'
       : scheme === 'rediss' ? '✅ Schéma TLS correct' : 'Schéma inconnu',
     ping: pingResult,
     error: pingError,
