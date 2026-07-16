@@ -390,7 +390,6 @@ export default function Equipes() {
     const isUnlimited = tournoi.eqMax >= UNLIMITED_EQ_MAX;
 
     for (const reg of regsToImport) {
-      ids.push(reg._id);
       if (!isUnlimited && newEquipes.length >= tournoi.eqMax) { skipped++; continue; }
       if (newEquipes.find((e) => e.nom.toLowerCase() === reg.nom.toLowerCase())) { skipped++; continue; }
       newEquipes.push({
@@ -398,6 +397,7 @@ export default function Equipes() {
         nom: reg.nom, j1: reg.j1, j2: reg.j2 || '', j3: reg.j3 || '',
         v: 0, d: 0, pts: 0, ptsCont: 0, matchsJoues: 0, adversaires: [], byeRecu: false, forfait: false,
       });
+      ids.push(reg._id);
       added++;
     }
     importEquipes(tournoi.id, newEquipes);

@@ -32,8 +32,8 @@ function registrationApiPlugin() {
           })
         }
 
-        // PUT /api/tournoi/:id — organizer registers tournoi info
-        if (req.method === 'PUT' && rawPath.startsWith('/tournoi/')) {
+        // POST or PUT /api/tournoi/:id — organizer registers tournoi info
+        if ((req.method === 'POST' || req.method === 'PUT') && rawPath.startsWith('/tournoi/')) {
           const id = rawPath.replace('/tournoi/', '')
           readBody((data) => {
             store.tournois[id] = data

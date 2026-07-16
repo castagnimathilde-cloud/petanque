@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   const { tournoiId, nom, j1, j2, j3 } = req.body;
 
-  if (!nom || !j1) return res.status(400).json({ error: 'Nom et Joueur 1 obligatoires' });
+  if (!tournoiId || !nom || !j1) return res.status(400).json({ error: 'tournoiId, nom et Joueur 1 obligatoires' });
 
   try {
     const tournoi = await redisGet(`tournoi:${tournoiId}`);
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     };
 
     existing.push(reg);
-    await redisSet(key, existing, 86400);
+    await redisSet(key, existing, 86400 * 7);
 
     return res.json({ ok: true });
   } catch (e) {

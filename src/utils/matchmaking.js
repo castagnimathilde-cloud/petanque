@@ -1,4 +1,4 @@
-import { genId } from './storage.js';
+import { genId, UNLIMITED_EQ_MAX } from './storage.js';
 
 /**
  * Fisher-Yates shuffle — mutates array in place, returns it
@@ -199,7 +199,7 @@ export function importFromSheet(rawText, tournoi) {
       skipped++;
       return;
     }
-    if (newEquipes.length >= tournoi.eqMax) { skipped++; return; }
+    if (tournoi.eqMax < UNLIMITED_EQ_MAX && newEquipes.length >= tournoi.eqMax) { skipped++; return; }
     newEquipes.push({
       id: genId(),
       nom,
