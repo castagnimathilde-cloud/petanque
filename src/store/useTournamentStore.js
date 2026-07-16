@@ -195,6 +195,7 @@ export const useTournamentStore = create((set, get) => ({
         return {
           ...t,
           started: false,
+          finished: false,
           tourActuel: 0,
           matchs: [],
           equipes: t.equipes.map((e) => ({

@@ -370,8 +370,6 @@ export default function Equipes() {
               return [...prev, ...newOnes];
             });
             lastTsRef.current = Math.max(...data.map((r) => r._ts));
-          } else {
-            lastTsRef.current = Date.now();
           }
         }
       } catch {}

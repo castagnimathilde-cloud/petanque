@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     if (duplicate) return res.status(409).json({ error: "Ce nom d'équipe est déjà en attente d'inscription" });
 
     const reg = {
-      _id: Date.now() + Math.random(),
+      _id: crypto.randomUUID(),
       _ts: Date.now(),
       tournoiId,
       nom: nom.trim(),

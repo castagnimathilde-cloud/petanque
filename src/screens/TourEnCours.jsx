@@ -298,7 +298,7 @@ export default function TourEnCours() {
   const realMatches    = currentMatches.filter((m) => !m.bye);
   const byeMatches     = currentMatches.filter((m) => m.bye);
   const doneCount      = currentMatches.filter((m) => m.done).length;
-  const allDone        = !isHistoryView && currentMatches.length > 0 && doneCount === currentMatches.length;
+  const allDone        = !isHistoryView && doneCount === currentMatches.length;
   const isLastTour     = tournoi.tourActuel >= tournoi.nbTours;
   const progress       = currentMatches.length ? Math.round((doneCount / currentMatches.length) * 100) : 0;
 

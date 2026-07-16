@@ -1,3 +1,5 @@
+import { genId } from './storage.js';
+
 /**
  * Fisher-Yates shuffle — mutates array in place, returns it
  */
@@ -199,7 +201,7 @@ export function importFromSheet(rawText, tournoi) {
     }
     if (newEquipes.length >= tournoi.eqMax) { skipped++; return; }
     newEquipes.push({
-      id: Date.now() + Math.random(),
+      id: genId(),
       nom,
       j1,
       j2: (cols[2] || '').trim(),
