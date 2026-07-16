@@ -1,21 +1,31 @@
-import Redis from 'ioredis';
+function getCredentials() {
+  const url   = process.env.UPSTASH_REDIS_REST_URL   || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (!url || !token) throw new Error('UPSTASH_REDIS_REST_URL / TOKEN manquant dans Vercel.');
+  return { url, token };
+}
 
-let _redis = null;
-function getRedis() {
-  const url = process.env.KV_URL || process.env.REDIS_URL;
-  if (!url) throw new Error("KV_URL / REDIS_URL manquant dans les variables d'environnement Vercel.");
-  if (!_redis || _redis.status === 'end' || _redis.status === 'close') {
-    _redis = new Redis(url, { maxRetriesPerRequest: 1, enableReadyCheck: false, connectTimeout: 4000, commandTimeout: 4000, lazyConnect: true });
-    _redis.on('error', () => {});
-  }
-  return _redis;
-}
 async function rGet(key) {
-  const raw = await getRedis().get(key);
-  return raw === null ? null : JSON.parse(raw);
+  const { url, token } = getCredentials();
+  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (data.result === null || data.result === undefined) return null;
+  return JSON.parse(data.result);
 }
+
 async function rSet(key, value, ttl) {
-  await getRedis().set(key, JSON.stringify(value), 'EX', ttl);
+  const { url, token } = getCredentials();
+  const body = ['SET', key, JSON.stringify(value)];
+  if (ttl) body.push('EX', ttl);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
 }
 
 export default async function handler(req, res) {
